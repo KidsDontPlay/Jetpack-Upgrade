@@ -1,0 +1,16 @@
+[
+{
+  "modid": "storagenetwork",
+  "name": "Storage Network",
+  "description": "Connect your inventories and manage your items easily.",
+  "version": "${version}",
+  "mcversion": "${mcversion}",
+  "url": "",
+  "updateUrl": "",
+  "authorList": ["MrRiegel"],
+  "credits": "The Forge and FML guys",
+  "logoFile": "",
+  "screenshots": [],
+  "dependencies": []
+}
+]
