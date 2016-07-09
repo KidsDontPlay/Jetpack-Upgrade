@@ -38,7 +38,7 @@ minecraft {
 }
 
 dependencies {
-    compile files("libs/..")
+    compile files("libs/")
 }
 
 processResources

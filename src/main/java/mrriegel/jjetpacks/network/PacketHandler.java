@@ -11,7 +11,7 @@ public class PacketHandler {
 
 	public static void init() {
 		int id = 0;
-		INSTANCE.registerMessage(MessageUpdate.Handler.class, MessageUpdate.class, id++, Side.SERVER);
+		INSTANCE.registerMessage(MessageReduce.Handler.class, MessageReduce.class, id++, Side.SERVER);
 	}
 
 }

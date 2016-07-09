@@ -1,8 +1,11 @@
 package mrriegel.jjetpacks.items;
 
-import mrriegel.jjetpacks.network.MessageUpdate;
+import mrriegel.jjetpacks.network.MessageReduce;
 import mrriegel.jjetpacks.network.PacketHandler;
+import net.minecraft.entity.EntityLivingBase;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.DamageSource;
 
 public class ItemJetpackRFTools extends ItemJetpackRF {
 
@@ -12,9 +15,9 @@ public class ItemJetpackRFTools extends ItemJetpackRF {
 		case 0:
 			return 50000;
 		case 1:
-			return 250000;
+			return 400000;
 		case 2:
-			return 1500000;
+			return 3200000;
 		default:
 			break;
 		}
@@ -25,11 +28,11 @@ public class ItemJetpackRFTools extends ItemJetpackRF {
 	public int maxTransfer(ItemStack container) {
 		switch (container.getItemDamage()) {
 		case 0:
-			return 500;
+			return 50;
 		case 1:
-			return 5000;
+			return 400;
 		case 2:
-			return 50000;
+			return 3200;
 		default:
 			break;
 		}
@@ -47,17 +50,18 @@ public class ItemJetpackRFTools extends ItemJetpackRF {
 	}
 
 	@Override
-	public void reduceFuel(ItemStack stack) {
+	public int reduceFuel(ItemStack stack, int amount, boolean simulate) {
 		switch (stack.getItemDamage()) {
 		case 0:
-			extractEnergy(stack, 50, false);
+			return extractEnergy(stack, 10 * amount, simulate);
 		case 1:
-			extractEnergy(stack, 100, false);
+			return extractEnergy(stack, 80 * amount, simulate);
 		case 2:
-			extractEnergy(stack, 150, false);
+			return extractEnergy(stack, 640 * amount, simulate);
 		default:
 			break;
 		}
+		return 0;
 	}
 
 	@Override
@@ -66,9 +70,9 @@ public class ItemJetpackRFTools extends ItemJetpackRF {
 		case 0:
 			return 0.25f;
 		case 1:
-			return 0.4f;
+			return 0.35f;
 		case 2:
-			return 0.6f;
+			return 0.5f;
 		default:
 			break;
 		}
@@ -81,9 +85,9 @@ public class ItemJetpackRFTools extends ItemJetpackRF {
 		case 0:
 			return 0.15f;
 		case 1:
-			return 0.30f;
+			return 0.35f;
 		case 2:
-			return 0.45f;
+			return 0.55f;
 		default:
 			break;
 		}
@@ -106,29 +110,14 @@ public class ItemJetpackRFTools extends ItemJetpackRF {
 	}
 
 	@Override
-	public boolean enoughFuel(ItemStack stack) {
+	public int getDamageReduce(ItemStack stack) {
 		switch (stack.getItemDamage()) {
 		case 0:
-			return getEnergyStored(stack) > 50;
+			return 2;
 		case 1:
-			return getEnergyStored(stack) > 100;
+			return 3;
 		case 2:
-			return getEnergyStored(stack) > 150;
-		default:
-			break;
-		}
-		return false;
-	}
-
-	@Override
-	public double getDamageReduce(ItemStack stack) {
-		switch (stack.getItemDamage()) {
-		case 0:
-			return 0.3;
-		case 1:
-			return 0.4;
-		case 2:
-			return 0.5;
+			return 5;
 		default:
 			break;
 		}
@@ -141,9 +130,9 @@ public class ItemJetpackRFTools extends ItemJetpackRF {
 		case 0:
 			return 0;
 		case 1:
-			return 1;
+			return 0;
 		case 2:
-			return 2;
+			return 1;
 		default:
 			break;
 		}
@@ -156,8 +145,13 @@ public class ItemJetpackRFTools extends ItemJetpackRF {
 	}
 
 	@Override
-	public void updateServer() {
-		PacketHandler.INSTANCE.sendToServer(new MessageUpdate());
+	public int getFuel(ItemStack stack) {
+		return getEnergyStored(stack);
+	}
+
+	@Override
+	public int getMaxFuel(ItemStack stack) {
+		return getMaxEnergyStored(stack);
 	}
 
 }
