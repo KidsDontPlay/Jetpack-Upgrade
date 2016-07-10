@@ -1,15 +1,8 @@
 package mrriegel.jjetpacks.items;
 
-import mrriegel.jjetpacks.helper.NBTHelper;
-import mrriegel.jjetpacks.network.MessageReduce;
-import mrriegel.jjetpacks.network.PacketHandler;
-import net.minecraft.entity.EntityLivingBase;
-import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.util.DamageSource;
 
-public class ItemJetpackRFTools extends ItemJetpackRF {
+public class ItemJetpackActually extends ItemJetpackRF {
 
 	@Override
 	public int getMaxEnergyStored(ItemStack container) {
@@ -43,7 +36,7 @@ public class ItemJetpackRFTools extends ItemJetpackRF {
 
 	@Override
 	public String getName() {
-		return "rftoolsjetpack";
+		return "actuallyjetpack";
 	}
 
 	@Override

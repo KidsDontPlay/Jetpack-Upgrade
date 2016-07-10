@@ -2,6 +2,7 @@ package mrriegel.jjetpacks.items;
 
 import java.util.List;
 
+import mrriegel.jjetpacks.helper.NBTHelper;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
@@ -53,9 +54,13 @@ public abstract class ItemJetpackRF extends ItemJetpackBase implements IEnergyCo
 	@Override
 	public void addInformation(ItemStack stack, EntityPlayer playerIn, List<String> tooltip, boolean advanced) {
 		super.addInformation(stack, playerIn, tooltip, advanced);
-		tooltip.add("RF: "+getEnergyStored(stack)+"/"+getMaxEnergyStored(stack));
+		tooltip.add("RF: " + getFuel(stack) + "/" + getMaxFuel(stack));
 	}
-	
-	
+
+	@Override
+	public void setMaxFuel(ItemStack stack) {
+		while (receiveEnergy(stack, Integer.MAX_VALUE, false) > 0)
+			;
+	}
 
 }

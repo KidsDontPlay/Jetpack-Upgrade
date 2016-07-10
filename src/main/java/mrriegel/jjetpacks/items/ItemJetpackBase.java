@@ -49,7 +49,7 @@ public abstract class ItemJetpackBase extends ItemArmor implements ISpecialArmor
 
 	public abstract int getNumber();
 
-	public abstract int reduceFuel(ItemStack stack, int amount, boolean hover,boolean simulate);
+	public abstract int reduceFuel(ItemStack stack, int amount, boolean hover, boolean simulate);
 
 	public abstract float getMaxVerticalSpeed(ItemStack stack);
 
@@ -64,12 +64,20 @@ public abstract class ItemJetpackBase extends ItemArmor implements ISpecialArmor
 	public abstract int getFuel(ItemStack stack);
 
 	public abstract int getMaxFuel(ItemStack stack);
+	
+	public abstract void setMaxFuel(ItemStack stack);
+	
+	public abstract double getHoverSink(ItemStack stack);
 
 	@Override
 	@SideOnly(Side.CLIENT)
 	public void getSubItems(Item item, CreativeTabs tab, List list) {
 		for (int i = 0; i < getNumber(); i++) {
-			list.add(new ItemStack(item, 1, i));
+			ItemStack x = new ItemStack(item, 1, i);
+			list.add(x);
+			x = x.copy();
+			setMaxFuel(x);
+			list.add(x);
 		}
 	}
 
@@ -142,6 +150,11 @@ public abstract class ItemJetpackBase extends ItemArmor implements ISpecialArmor
 	}
 
 	@Override
+	public boolean isDamaged(ItemStack stack) {
+		return false;
+	}
+
+	@Override
 	public ModelBiped getArmorModel(EntityLivingBase entityLiving, ItemStack itemStack, EntityEquipmentSlot armorSlot, ModelBiped _default) {
 		if (armorSlot == EntityEquipmentSlot.CHEST)
 			return ModelJetpack.INSTANCE;
@@ -157,27 +170,35 @@ public abstract class ItemJetpackBase extends ItemArmor implements ISpecialArmor
 
 	@Override
 	public void onArmorTick(World world, EntityPlayer player, ItemStack itemStack) {
-		if (world.isRemote && NBTHelper.getBoolean(itemStack, "hover")) {
-			if (getFuel(itemStack) > reduceFuel(itemStack, 2,true, true)) {
+		if (!world.isRemote)
+			return;
+		boolean canMove = false;
+		if (NBTHelper.getBoolean(itemStack, "hover")) {
+			if (getFuel(itemStack) > reduceFuel(itemStack, 2, true, true)) {
 				if (player.isSneaking())
 					player.motionY = -.2;
 				else
-					player.motionY = 0;
-				PacketHandler.INSTANCE.sendToServer(new MessageReduce(2,true));
+					player.motionY = getHoverSink(itemStack);
+				canMove = true;
+				PacketHandler.INSTANCE.sendToServer(new MessageReduce(2, true));
 			} else
 				PacketHandler.INSTANCE.sendToServer(new MessageHover());
 		}
-		if (world.isRemote && Minecraft.getMinecraft().gameSettings.keyBindJump.isKeyDown() && getFuel(itemStack) > reduceFuel(itemStack, 3, false,true) && Minecraft.getMinecraft().inGameHasFocus) {
+		if (Minecraft.getMinecraft().gameSettings.keyBindJump.isKeyDown() && getFuel(itemStack) > reduceFuel(itemStack, 2, false, true) && Minecraft.getMinecraft().inGameHasFocus) {
 			NBTHelper.setBoolean(itemStack, "active", true);
+			if (player.motionY <= getMaxVerticalSpeed(itemStack)) {
+				player.motionY += (player.motionY < 0 ? 1.25d : 1d) * getAcceleration(itemStack);
+				canMove = true;
+				PacketHandler.INSTANCE.sendToServer(new MessageReduce(2, false));
+			}
+		} else
+			NBTHelper.setBoolean(itemStack, "active", false);
+
+		if (canMove && getFuel(itemStack) > reduceFuel(itemStack, 1, false, true) && Minecraft.getMinecraft().inGameHasFocus) {
 			boolean left = Minecraft.getMinecraft().gameSettings.keyBindLeft.isKeyDown();
 			boolean right = Minecraft.getMinecraft().gameSettings.keyBindRight.isKeyDown();
 			boolean forward = Minecraft.getMinecraft().gameSettings.keyBindForward.isKeyDown();
 			boolean backward = Minecraft.getMinecraft().gameSettings.keyBindBack.isKeyDown();
-			if (player.motionY <= getMaxVerticalSpeed(itemStack)) {
-				player.motionY += (player.motionY < 0 ? 1.25d : 1d) * getAcceleration(itemStack);
-				PacketHandler.INSTANCE.sendToServer(new MessageReduce(2,false));
-			}
-
 			float thrust = getMaxHorizontalSpeed(itemStack);
 			if (forward)
 				player.moveRelative(0, thrust, thrust);
@@ -188,10 +209,8 @@ public abstract class ItemJetpackBase extends ItemArmor implements ISpecialArmor
 			else if (right)
 				player.moveRelative(-thrust, 0, thrust);
 			if (forward || right || left || backward)
-				PacketHandler.INSTANCE.sendToServer(new MessageReduce(1,false));
-			player.fallDistance = -1;
-		} else
-			NBTHelper.setBoolean(itemStack, "active", false);
+				PacketHandler.INSTANCE.sendToServer(new MessageReduce(1, false));
+		}
 	}
 
 	@Override
@@ -209,7 +228,7 @@ public abstract class ItemJetpackBase extends ItemArmor implements ISpecialArmor
 
 	@Override
 	public void damageArmor(EntityLivingBase entity, ItemStack stack, DamageSource source, int damage, int slot) {
-		reduceFuel(stack, damage * getFuelPerDamage(),true, false);
+		reduceFuel(stack, damage * getFuelPerDamage(), true, false);
 	}
 
 	int getFuelPerDamage() {

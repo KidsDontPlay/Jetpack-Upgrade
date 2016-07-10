@@ -1,25 +1,55 @@
 package mrriegel.jjetpacks.items;
 
+import java.util.List;
+
 import mrriegel.jjetpacks.helper.NBTHelper;
-import mrriegel.jjetpacks.network.MessageReduce;
-import mrriegel.jjetpacks.network.PacketHandler;
-import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.util.DamageSource;
+import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.math.MathHelper;
+import vazkii.botania.api.mana.IManaItem;
 
-public class ItemJetpackRFTools extends ItemJetpackRF {
+public class ItemJetpackBotania extends ItemJetpackBase implements IManaItem {
 
 	@Override
-	public int getMaxEnergyStored(ItemStack container) {
-		switch (container.getItemDamage()) {
+	public void addMana(ItemStack arg0, int arg1) {
+		NBTHelper.setInteger(arg0, "mana", Math.min(NBTHelper.getInteger(arg0, "mana") + arg1, getMaxMana(arg0)));
+	}
+
+	@Override
+	public boolean canExportManaToItem(ItemStack arg0, ItemStack arg1) {
+		return false;
+	}
+
+	@Override
+	public boolean canExportManaToPool(ItemStack arg0, TileEntity arg1) {
+		return false;
+	}
+
+	@Override
+	public boolean canReceiveManaFromItem(ItemStack arg0, ItemStack arg1) {
+		return true;
+	}
+
+	@Override
+	public boolean canReceiveManaFromPool(ItemStack arg0, TileEntity arg1) {
+		return true;
+	}
+
+	@Override
+	public int getMana(ItemStack arg0) {
+		return NBTHelper.getInteger(arg0, "mana");
+	}
+
+	@Override
+	public int getMaxMana(ItemStack arg0) {
+		switch (arg0.getItemDamage()) {
 		case 0:
-			return 50000;
+			return 5000;
 		case 1:
-			return 400000;
+			return 40000;
 		case 2:
-			return 3200000;
+			return 320000;
 		default:
 			break;
 		}
@@ -27,23 +57,13 @@ public class ItemJetpackRFTools extends ItemJetpackRF {
 	}
 
 	@Override
-	public int maxTransfer(ItemStack container) {
-		switch (container.getItemDamage()) {
-		case 0:
-			return 50;
-		case 1:
-			return 400;
-		case 2:
-			return 3200;
-		default:
-			break;
-		}
-		return 0;
+	public boolean isNoExport(ItemStack arg0) {
+		return true;
 	}
 
 	@Override
 	public String getName() {
-		return "rftoolsjetpack";
+		return "botaniajetpack";
 	}
 
 	@Override
@@ -55,15 +75,29 @@ public class ItemJetpackRFTools extends ItemJetpackRF {
 	public int reduceFuel(ItemStack stack, int amount, boolean hover, boolean simulate) {
 		switch (stack.getItemDamage()) {
 		case 0:
-			return extractEnergy(stack, 10 * amount, simulate);
+			return extractMana(stack, 10 * amount, simulate);
 		case 1:
-			return extractEnergy(stack, (hover ? 10 : 80) * amount, simulate);
+			return extractMana(stack, (hover ? 10 : 80) * amount, simulate);
 		case 2:
-			return extractEnergy(stack, (hover ? 10 : 640) * amount, simulate);
+			return extractMana(stack, (hover ? 10 : 640) * amount, simulate);
 		default:
 			break;
 		}
 		return 0;
+	}
+
+	public int extractMana(ItemStack container, int maxExtract, boolean simulate) {
+		if (container.getTagCompound() == null || !container.getTagCompound().hasKey("mana")) {
+			return 0;
+		}
+		int energy = container.getTagCompound().getInteger("mana");
+		int energyExtracted = Math.min(energy, maxExtract);
+
+		if (!simulate) {
+			energy -= energyExtracted;
+			container.getTagCompound().setInteger("mana", energy);
+		}
+		return energyExtracted;
 	}
 
 	@Override
@@ -143,14 +177,19 @@ public class ItemJetpackRFTools extends ItemJetpackRF {
 
 	@Override
 	public int getFuel(ItemStack stack) {
-		return getEnergyStored(stack);
+		return getMana(stack);
 	}
 
 	@Override
 	public int getMaxFuel(ItemStack stack) {
-		return getMaxEnergyStored(stack);
+		return getMaxMana(stack);
 	}
 
+	@Override
+	public void setMaxFuel(ItemStack stack) {
+		addMana(stack, getMaxFuel(stack));
+	}
+	
 	@Override
 	public double getHoverSink(ItemStack stack) {
 		switch (stack.getItemDamage()) {
@@ -165,5 +204,5 @@ public class ItemJetpackRFTools extends ItemJetpackRF {
 		}
 		return Double.NaN;
 	}
-
+	
 }
