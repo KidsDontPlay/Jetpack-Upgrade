@@ -1,7 +1,7 @@
 package mrriegel.jjetpacks.network;
 
 import io.netty.buffer.ByteBuf;
-import mrriegel.jjetpacks.items.ItemJetpackBase;
+import mrriegel.jjetpacks.helper.NBTHelper;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.inventory.EntityEquipmentSlot;
 import net.minecraft.item.ItemStack;
@@ -9,42 +9,26 @@ import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessageHandler;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
-public class MessageReduce implements IMessage {
-	int amount;
-	boolean hover;
-
-	public MessageReduce() {
-	}
-
-	public MessageReduce(int amount, boolean hover) {
-		this.amount = amount;
-		this.hover = hover;
-	}
+public class MessageHover implements IMessage {
 
 	@Override
 	public void fromBytes(ByteBuf buf) {
-		this.amount = buf.readInt();
-		this.hover = buf.readBoolean();
 	}
 
 	@Override
 	public void toBytes(ByteBuf buf) {
-		buf.writeInt(this.amount);
-		buf.writeBoolean(this.hover);
 	}
 
-	public static class Handler implements IMessageHandler<MessageReduce, IMessage> {
+	public static class Handler implements IMessageHandler<MessageHover, IMessage> {
 
 		@Override
-		public IMessage onMessage(final MessageReduce message, final MessageContext ctx) {
+		public IMessage onMessage(final MessageHover message, final MessageContext ctx) {
 			ctx.getServerHandler().playerEntity.getServerWorld().addScheduledTask(new Runnable() {
-
 				@Override
 				public void run() {
 					EntityPlayer p = ctx.getServerHandler().playerEntity;
-					p.fallDistance = -1;
 					ItemStack jet = p.inventory.armorInventory[EntityEquipmentSlot.CHEST.getIndex()];
-					((ItemJetpackBase) jet.getItem()).reduceFuel(jet, message.amount, message.hover, false);
+					NBTHelper.setBoolean(jet, "hover", !NBTHelper.getBoolean(jet, "hover"));
 				}
 			});
 			return null;

@@ -3,15 +3,19 @@ package mrriegel.jjetpacks.items;
 import java.util.List;
 import java.util.UUID;
 
-import mcjty.rftools.blocks.ModBlocks;
 import mrriegel.jjetpacks.CreativeTab;
-import mrriegel.jjetpacks.config.ConfigHandler;
+import mrriegel.jjetpacks.ModelJetpack;
 import mrriegel.jjetpacks.helper.NBTHelper;
+import mrriegel.jjetpacks.network.MessageHover;
 import mrriegel.jjetpacks.network.MessageReduce;
 import mrriegel.jjetpacks.network.PacketHandler;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.model.ModelBiped;
+import net.minecraft.client.renderer.ItemMeshDefinition;
+import net.minecraft.client.renderer.block.model.ModelBakery;
+import net.minecraft.client.renderer.block.model.ModelResourceLocation;
 import net.minecraft.creativetab.CreativeTabs;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.SharedMonsterAttributes;
 import net.minecraft.entity.ai.attributes.AttributeModifier;
@@ -21,20 +25,12 @@ import net.minecraft.item.EnumRarity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemArmor;
 import net.minecraft.item.ItemStack;
-import net.minecraft.item.ItemArmor.ArmorMaterial;
 import net.minecraft.util.DamageSource;
-import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.World;
-import net.minecraftforge.client.settings.KeyBindingMap;
+import net.minecraftforge.client.model.ModelLoader;
 import net.minecraftforge.common.ISpecialArmor;
-import net.minecraftforge.common.ISpecialArmor.ArmorProperties;
-import net.minecraftforge.common.util.EnumHelper;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
-
-import org.lwjgl.input.Keyboard;
-
-import vazkii.botania.api.state.enums.LuminizerVariant;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
@@ -42,7 +38,7 @@ import com.google.common.collect.Multimap;
 public abstract class ItemJetpackBase extends ItemArmor implements ISpecialArmor {
 
 	public ItemJetpackBase() {
-		super(ArmorMaterial.CHAIN, 0, EntityEquipmentSlot.CHEST);
+		super(ArmorMaterial.IRON, 0, EntityEquipmentSlot.CHEST);
 		this.setCreativeTab(CreativeTab.tab1);
 		this.setHasSubtypes(true);
 		this.setRegistryName(getName());
@@ -53,7 +49,7 @@ public abstract class ItemJetpackBase extends ItemArmor implements ISpecialArmor
 
 	public abstract int getNumber();
 
-	public abstract int reduceFuel(ItemStack stack, int amount, boolean simulate);
+	public abstract int reduceFuel(ItemStack stack, int amount, boolean hover,boolean simulate);
 
 	public abstract float getMaxVerticalSpeed(ItemStack stack);
 
@@ -65,8 +61,6 @@ public abstract class ItemJetpackBase extends ItemArmor implements ISpecialArmor
 
 	public abstract double getToughness(ItemStack stack);
 
-	public abstract boolean hover(ItemStack stack);
-
 	public abstract int getFuel(ItemStack stack);
 
 	public abstract int getMaxFuel(ItemStack stack);
@@ -77,6 +71,21 @@ public abstract class ItemJetpackBase extends ItemArmor implements ISpecialArmor
 		for (int i = 0; i < getNumber(); i++) {
 			list.add(new ItemStack(item, 1, i));
 		}
+	}
+
+	@SideOnly(Side.CLIENT)
+	public void initModel() {
+		for (int i = 0; i < getNumber(); i++) {
+			ModelResourceLocation model = new ModelResourceLocation(getRegistryName() + "_" + i, "inventory");
+			ModelLoader.registerItemVariants(this, model);
+		}
+		ModelLoader.setCustomMeshDefinition(this, new ItemMeshDefinition() {
+			@Override
+			public ModelResourceLocation getModelLocation(ItemStack stack) {
+				int i = stack.getItemDamage();
+				return new ModelResourceLocation(getRegistryName() + "_" + i, "inventory");
+			}
+		});
 	}
 
 	@Override
@@ -133,15 +142,40 @@ public abstract class ItemJetpackBase extends ItemArmor implements ISpecialArmor
 	}
 
 	@Override
+	public ModelBiped getArmorModel(EntityLivingBase entityLiving, ItemStack itemStack, EntityEquipmentSlot armorSlot, ModelBiped _default) {
+		if (armorSlot == EntityEquipmentSlot.CHEST)
+			return ModelJetpack.INSTANCE;
+		return super.getArmorModel(entityLiving, itemStack, armorSlot, _default);
+	}
+
+	@Override
+	public String getArmorTexture(ItemStack stack, Entity entity, EntityEquipmentSlot slot, String type) {
+		if (slot == EntityEquipmentSlot.CHEST)
+			return null;
+		return super.getArmorTexture(stack, entity, slot, type);
+	}
+
+	@Override
 	public void onArmorTick(World world, EntityPlayer player, ItemStack itemStack) {
-		if (world.isRemote && Minecraft.getMinecraft().gameSettings.keyBindJump.isKeyDown() && getFuel(itemStack) > reduceFuel(itemStack, 3, true) && Minecraft.getMinecraft().inGameHasFocus) {
+		if (world.isRemote && NBTHelper.getBoolean(itemStack, "hover")) {
+			if (getFuel(itemStack) > reduceFuel(itemStack, 2,true, true)) {
+				if (player.isSneaking())
+					player.motionY = -.2;
+				else
+					player.motionY = 0;
+				PacketHandler.INSTANCE.sendToServer(new MessageReduce(2,true));
+			} else
+				PacketHandler.INSTANCE.sendToServer(new MessageHover());
+		}
+		if (world.isRemote && Minecraft.getMinecraft().gameSettings.keyBindJump.isKeyDown() && getFuel(itemStack) > reduceFuel(itemStack, 3, false,true) && Minecraft.getMinecraft().inGameHasFocus) {
+			NBTHelper.setBoolean(itemStack, "active", true);
 			boolean left = Minecraft.getMinecraft().gameSettings.keyBindLeft.isKeyDown();
 			boolean right = Minecraft.getMinecraft().gameSettings.keyBindRight.isKeyDown();
 			boolean forward = Minecraft.getMinecraft().gameSettings.keyBindForward.isKeyDown();
 			boolean backward = Minecraft.getMinecraft().gameSettings.keyBindBack.isKeyDown();
 			if (player.motionY <= getMaxVerticalSpeed(itemStack)) {
 				player.motionY += (player.motionY < 0 ? 1.25d : 1d) * getAcceleration(itemStack);
-				PacketHandler.INSTANCE.sendToServer(new MessageReduce(2));
+				PacketHandler.INSTANCE.sendToServer(new MessageReduce(2,false));
 			}
 
 			float thrust = getMaxHorizontalSpeed(itemStack);
@@ -154,9 +188,10 @@ public abstract class ItemJetpackBase extends ItemArmor implements ISpecialArmor
 			else if (right)
 				player.moveRelative(-thrust, 0, thrust);
 			if (forward || right || left || backward)
-				PacketHandler.INSTANCE.sendToServer(new MessageReduce(1));
+				PacketHandler.INSTANCE.sendToServer(new MessageReduce(1,false));
 			player.fallDistance = -1;
-		}
+		} else
+			NBTHelper.setBoolean(itemStack, "active", false);
 	}
 
 	@Override
@@ -174,7 +209,7 @@ public abstract class ItemJetpackBase extends ItemArmor implements ISpecialArmor
 
 	@Override
 	public void damageArmor(EntityLivingBase entity, ItemStack stack, DamageSource source, int damage, int slot) {
-		reduceFuel(stack, damage * getFuelPerDamage(), false);
+		reduceFuel(stack, damage * getFuelPerDamage(),true, false);
 	}
 
 	int getFuelPerDamage() {

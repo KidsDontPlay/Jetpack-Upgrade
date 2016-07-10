@@ -50,14 +50,14 @@ public class ItemJetpackRFTools extends ItemJetpackRF {
 	}
 
 	@Override
-	public int reduceFuel(ItemStack stack, int amount, boolean simulate) {
+	public int reduceFuel(ItemStack stack, int amount, boolean hover, boolean simulate) {
 		switch (stack.getItemDamage()) {
 		case 0:
 			return extractEnergy(stack, 10 * amount, simulate);
 		case 1:
-			return extractEnergy(stack, 80 * amount, simulate);
+			return extractEnergy(stack, (hover ? 10 : 80) * amount, simulate);
 		case 2:
-			return extractEnergy(stack, 640 * amount, simulate);
+			return extractEnergy(stack, (hover ? 10 : 640) * amount, simulate);
 		default:
 			break;
 		}
@@ -137,11 +137,6 @@ public class ItemJetpackRFTools extends ItemJetpackRF {
 			break;
 		}
 		return 0;
-	}
-
-	@Override
-	public boolean hover(ItemStack stack) {
-		return false;
 	}
 
 	@Override

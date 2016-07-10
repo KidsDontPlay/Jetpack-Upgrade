@@ -6,12 +6,11 @@ import net.minecraftforge.fml.relauncher.Side;
 
 public class PacketHandler {
 
-	public static final SimpleNetworkWrapper INSTANCE = new SimpleNetworkWrapper(
-			JJetpacks.MODID);
+	public static final SimpleNetworkWrapper INSTANCE = new SimpleNetworkWrapper(JJetpacks.MODID);
 
 	public static void init() {
 		int id = 0;
 		INSTANCE.registerMessage(MessageReduce.Handler.class, MessageReduce.class, id++, Side.SERVER);
+		INSTANCE.registerMessage(MessageHover.Handler.class, MessageHover.class, id++, Side.SERVER);
 	}
-
 }

@@ -38,16 +38,14 @@ public class CommonProxy {
 			JJetpacks.forestry = true;
 		PacketHandler.init();
 		ModItems.init();
-		CraftingRecipes.init();
 	}
 
 	public void init(FMLInitializationEvent event) {
+		CraftingRecipes.init();
 		NetworkRegistry.INSTANCE.registerGuiHandler(JJetpacks.instance, new GuiHandler());
-		// MinecraftForge.EVENT_BUS.register(this);
 	}
 
 	public void postInit(FMLPostInitializationEvent event) {
-		// Util.init();
 	}
 
 }
