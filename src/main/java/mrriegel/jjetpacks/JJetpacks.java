@@ -1,14 +1,11 @@
 package mrriegel.jjetpacks;
 
 import mrriegel.jjetpacks.proxy.CommonProxy;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.Mod.EventHandler;
 import net.minecraftforge.fml.common.Mod.Instance;
 import net.minecraftforge.fml.common.SidedProxy;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
-import net.minecraftforge.fml.common.event.FMLInterModComms;
 import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 
@@ -23,8 +20,8 @@ public class JJetpacks {
 
 	@SidedProxy(clientSide = "mrriegel.jjetpacks.proxy.ClientProxy", serverSide = "mrriegel.jjetpacks.proxy.CommonProxy")
 	public static CommonProxy proxy;
-	
-	public static boolean rftools,eio,botania,actually,blood,generators,random,roots,forestry;
+
+	public static boolean rftools, eio, botania, actually, blood, generators, random, roots, forestry;
 
 	@EventHandler
 	public void preInit(FMLPreInitializationEvent event) {

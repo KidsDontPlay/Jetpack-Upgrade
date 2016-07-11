@@ -2,12 +2,10 @@ package mrriegel.jjetpacks.items;
 
 import java.util.List;
 
-import mrriegel.jjetpacks.helper.NBTHelper;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import cofh.api.energy.IEnergyContainerItem;
-import cofh.api.energy.ItemEnergyContainer;
 
 public abstract class ItemJetpackRF extends ItemJetpackBase implements IEnergyContainerItem {
 

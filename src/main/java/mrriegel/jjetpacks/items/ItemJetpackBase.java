@@ -64,10 +64,31 @@ public abstract class ItemJetpackBase extends ItemArmor implements ISpecialArmor
 	public abstract int getFuel(ItemStack stack);
 
 	public abstract int getMaxFuel(ItemStack stack);
-	
+
 	public abstract void setMaxFuel(ItemStack stack);
-	
+
 	public abstract double getHoverSink(ItemStack stack);
+
+	public float getVSpeed(ItemStack stack) {
+		if (stack.getTagCompound() == null || !stack.getTagCompound().hasKey("vspeed")) {
+			NBTHelper.setFloat(stack, "vspeed", 1f);
+		}
+		return NBTHelper.getFloat(stack, "vspeed");
+	}
+
+	public float getHSpeed(ItemStack stack) {
+		if (stack.getTagCompound() == null || !stack.getTagCompound().hasKey("hspeed")) {
+			NBTHelper.setFloat(stack, "hspeed", 1f);
+		}
+		return NBTHelper.getFloat(stack, "hspeed");
+	}
+
+	public float getAcce(ItemStack stack) {
+		if (stack.getTagCompound() == null || !stack.getTagCompound().hasKey("acce")) {
+			NBTHelper.setFloat(stack, "acce", 1f);
+		}
+		return NBTHelper.getFloat(stack, "acce");
+	}
 
 	@Override
 	@SideOnly(Side.CLIENT)
@@ -85,7 +106,7 @@ public abstract class ItemJetpackBase extends ItemArmor implements ISpecialArmor
 	public void initModel() {
 		for (int i = 0; i < getNumber(); i++) {
 			ModelResourceLocation model = new ModelResourceLocation(getRegistryName() + "_" + i, "inventory");
-			ModelLoader.registerItemVariants(this, model);
+			ModelBakery.registerItemVariants(this, model);
 		}
 		ModelLoader.setCustomMeshDefinition(this, new ItemMeshDefinition() {
 			@Override
@@ -101,10 +122,11 @@ public abstract class ItemJetpackBase extends ItemArmor implements ISpecialArmor
 		return this.getUnlocalizedName() + "_" + stack.getItemDamage();
 	}
 
+	@Override
 	public Multimap<String, AttributeModifier> getAttributeModifiers(EntityEquipmentSlot slot, ItemStack stack) {
 		Multimap<String, AttributeModifier> multimap = HashMultimap.<String, AttributeModifier> create();
 		if (slot == this.armorType) {
-			multimap.put(SharedMonsterAttributes.ARMOR.getAttributeUnlocalizedName(), new AttributeModifier(UUID.fromString("9F3D476D-C118-4544-8365-64846904B48E"), "Armor modifier", (double) getDamageReduce(stack), 0));
+			multimap.put(SharedMonsterAttributes.ARMOR.getAttributeUnlocalizedName(), new AttributeModifier(UUID.fromString("9F3D476D-C118-4544-8365-64846904B48E"), "Armor modifier", getDamageReduce(stack), 0));
 			multimap.put(SharedMonsterAttributes.ARMOR_TOUGHNESS.getAttributeUnlocalizedName(), new AttributeModifier(UUID.fromString("9F3D476D-C118-4544-8365-64846904B48E"), "Armor toughness", getToughness(stack), 0));
 		}
 		return multimap;
@@ -115,6 +137,7 @@ public abstract class ItemJetpackBase extends ItemArmor implements ISpecialArmor
 		return EnumRarity.values()[stack.getItemDamage()];
 	}
 
+	@Override
 	public boolean isBookEnchantable(ItemStack stack, ItemStack book) {
 		return false;
 	}
@@ -170,6 +193,9 @@ public abstract class ItemJetpackBase extends ItemArmor implements ISpecialArmor
 
 	@Override
 	public void onArmorTick(World world, EntityPlayer player, ItemStack itemStack) {
+		NBTHelper.setString(itemStack, "player", player.getDisplayNameString());
+		if (NBTHelper.getBoolean(itemStack, "hover") && player.onGround)
+			NBTHelper.setBoolean(itemStack, "hover", false);
 		if (!world.isRemote)
 			return;
 		boolean canMove = false;
@@ -186,8 +212,8 @@ public abstract class ItemJetpackBase extends ItemArmor implements ISpecialArmor
 		}
 		if (Minecraft.getMinecraft().gameSettings.keyBindJump.isKeyDown() && getFuel(itemStack) > reduceFuel(itemStack, 2, false, true) && Minecraft.getMinecraft().inGameHasFocus) {
 			NBTHelper.setBoolean(itemStack, "active", true);
-			if (player.motionY <= getMaxVerticalSpeed(itemStack)) {
-				player.motionY += (player.motionY < 0 ? 1.25d : 1d) * getAcceleration(itemStack);
+			if (player.motionY <= getMaxVerticalSpeed(itemStack) * getVSpeed(itemStack)) {
+				player.motionY += (player.motionY < 0 ? 1.25d : 1d) * getAcceleration(itemStack) * getAcce(itemStack);
 				canMove = true;
 				PacketHandler.INSTANCE.sendToServer(new MessageReduce(2, false));
 			}
@@ -199,7 +225,7 @@ public abstract class ItemJetpackBase extends ItemArmor implements ISpecialArmor
 			boolean right = Minecraft.getMinecraft().gameSettings.keyBindRight.isKeyDown();
 			boolean forward = Minecraft.getMinecraft().gameSettings.keyBindForward.isKeyDown();
 			boolean backward = Minecraft.getMinecraft().gameSettings.keyBindBack.isKeyDown();
-			float thrust = getMaxHorizontalSpeed(itemStack);
+			float thrust = getMaxHorizontalSpeed(itemStack) * getHSpeed(itemStack);
 			if (forward)
 				player.moveRelative(0, thrust, thrust);
 			else if (backward)

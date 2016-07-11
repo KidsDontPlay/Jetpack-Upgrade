@@ -5,64 +5,15 @@ import java.util.List;
 import mrriegel.jjetpacks.helper.NBTHelper;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
-import net.minecraft.tileentity.TileEntity;
-import vazkii.botania.api.mana.IManaItem;
+import net.minecraft.world.World;
+import WayofTime.bloodmagic.api.saving.SoulNetwork;
+import WayofTime.bloodmagic.api.util.helper.NetworkHelper;
 
-public class ItemJetpackBotania extends ItemJetpackBase implements IManaItem {
-
-	@Override
-	public void addMana(ItemStack arg0, int arg1) {
-		NBTHelper.setInteger(arg0, "mana", Math.min(NBTHelper.getInteger(arg0, "mana") + arg1, getMaxMana(arg0)));
-	}
-
-	@Override
-	public boolean canExportManaToItem(ItemStack arg0, ItemStack arg1) {
-		return false;
-	}
-
-	@Override
-	public boolean canExportManaToPool(ItemStack arg0, TileEntity arg1) {
-		return false;
-	}
-
-	@Override
-	public boolean canReceiveManaFromItem(ItemStack arg0, ItemStack arg1) {
-		return true;
-	}
-
-	@Override
-	public boolean canReceiveManaFromPool(ItemStack arg0, TileEntity arg1) {
-		return true;
-	}
-
-	@Override
-	public int getMana(ItemStack arg0) {
-		return NBTHelper.getInteger(arg0, "mana");
-	}
-
-	@Override
-	public int getMaxMana(ItemStack arg0) {
-		switch (arg0.getItemDamage()) {
-		case 0:
-			return 5000;
-		case 1:
-			return 40000;
-		case 2:
-			return 320000;
-		default:
-			break;
-		}
-		return 0;
-	}
-
-	@Override
-	public boolean isNoExport(ItemStack arg0) {
-		return true;
-	}
+public class ItemJetpackBlood extends ItemJetpackBase {
 
 	@Override
 	public String getName() {
-		return "botaniajetpack";
+		return "bloodjetpack";
 	}
 
 	@Override
@@ -74,27 +25,27 @@ public class ItemJetpackBotania extends ItemJetpackBase implements IManaItem {
 	public int reduceFuel(ItemStack stack, int amount, boolean hover, boolean simulate) {
 		switch (stack.getItemDamage()) {
 		case 0:
-			return extractMana(stack, amount, simulate);
+			return extractEssence(stack, amount, simulate);
 		case 1:
-			return extractMana(stack, (hover ? 1 : 8) * amount, simulate);
+			return extractEssence(stack, (hover ? 1 : 8) * amount, simulate);
 		case 2:
-			return extractMana(stack, (hover ? 1 : 64) * amount, simulate);
+			return extractEssence(stack, (hover ? 1 : 64) * amount, simulate);
 		default:
 			break;
 		}
 		return 0;
 	}
 
-	public int extractMana(ItemStack container, int maxExtract, boolean simulate) {
-		if (container.getTagCompound() == null || !container.getTagCompound().hasKey("mana")) {
+	public int extractEssence(ItemStack container, int maxExtract, boolean simulate) {
+		if (container.getTagCompound() == null || !container.getTagCompound().hasKey("essence")) {
 			return 0;
 		}
-		int energy = container.getTagCompound().getInteger("mana");
+		int energy = container.getTagCompound().getInteger("essence");
 		int energyExtracted = Math.min(energy, maxExtract);
 
 		if (!simulate) {
 			energy -= energyExtracted;
-			container.getTagCompound().setInteger("mana", energy);
+			container.getTagCompound().setInteger("essence", energy);
 		}
 		return energyExtracted;
 	}
@@ -176,17 +127,27 @@ public class ItemJetpackBotania extends ItemJetpackBase implements IManaItem {
 
 	@Override
 	public int getFuel(ItemStack stack) {
-		return getMana(stack);
+		return NBTHelper.getInteger(stack, "essence");
 	}
 
 	@Override
 	public int getMaxFuel(ItemStack stack) {
-		return getMaxMana(stack);
+		switch (stack.getItemDamage()) {
+		case 0:
+			return 5000;
+		case 1:
+			return 40000;
+		case 2:
+			return 320000;
+		default:
+			break;
+		}
+		return 0;
 	}
 
 	@Override
 	public void setMaxFuel(ItemStack stack) {
-		addMana(stack, getMaxFuel(stack));
+		NBTHelper.setInteger(stack, "essence", getMaxFuel(stack));
 	}
 
 	@Override
@@ -207,7 +168,28 @@ public class ItemJetpackBotania extends ItemJetpackBase implements IManaItem {
 	@Override
 	public void addInformation(ItemStack stack, EntityPlayer playerIn, List<String> tooltip, boolean advanced) {
 		super.addInformation(stack, playerIn, tooltip, advanced);
-		tooltip.add("Mana: " + getFuel(stack) + "/" + getMaxFuel(stack));
+		tooltip.add("Essence: " + getFuel(stack) / 10 + "/" + getMaxFuel(stack) / 10);
+	}
+
+	@Override
+	public void onArmorTick(World world, EntityPlayer player, ItemStack itemStack) {
+		if (!world.isRemote) {
+			int need = getMaxFuel(itemStack) - getFuel(itemStack);
+			need = Math.min(need, 100);
+			if (need > 0) {
+				int extracted = syphon(NetworkHelper.getSoulNetwork(player), need / 10);
+				NBTHelper.setInteger(itemStack, "essence", NBTHelper.getInteger(itemStack, "essence") + extracted * 10);
+			}
+		}
+		super.onArmorTick(world, player, itemStack);
+	}
+
+	private int syphon(SoulNetwork soul, int syphon) {
+		int essence = soul.getCurrentEssence();
+		int essenceExtracted = Math.min(essence, syphon);
+		essence -= essenceExtracted;
+		soul.setCurrentEssence(essence);
+		return essenceExtracted;
 	}
 
 }

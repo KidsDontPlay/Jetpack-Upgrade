@@ -29,59 +29,26 @@ import net.minecraftforge.oredict.OreDictionary;
 import com.google.common.collect.Lists;
 
 public class Util {
-	private static final Map<String, String> modNamesForIds = new HashMap<String, String>();
-
-	public static void init() {
-		Map<String, ModContainer> modMap = Loader.instance()
-				.getIndexedModList();
-		for (Map.Entry<String, ModContainer> modEntry : modMap.entrySet()) {
-			String lowercaseId = modEntry.getKey().toLowerCase(Locale.ENGLISH);
-			String modName = modEntry.getValue().getName();
-			modNamesForIds.put(lowercaseId, modName);
-		}
-	}
 
 	@Nonnull
 	public static String getModNameForItem(@Nonnull Item item) {
-		// ResourceLocation itemResourceLocation =
-		// GameData.getItemRegistry().getNameForObject(item);
-		// String modId = itemResourceLocation.getResourceDomain();
-		// String lowercaseModId = modId.toLowerCase(Locale.ENGLISH);
-		// String modName = modNamesForIds.get(lowercaseModId);
-		// if (modName == null) {
-		// modName = WordUtils.capitalize(modId);
-		// modNamesForIds.put(lowercaseModId, modName);
-		// }
-		ModContainer m = Loader.instance().getIndexedModList()
-				.get(item.getRegistryName().getResourceDomain());
+		ModContainer m = Loader.instance().getIndexedModList().get(item.getRegistryName().getResourceDomain());
 		if (m == null)
 			return "Minecraft";
 		else
 			return m.getName();
 
-		// return modName;
 	}
 
 	@Nonnull
 	public static String getModNameForFluid(@Nonnull Fluid fluid) {
-		ModContainer m = Loader.instance().getIndexedModList()
-				.get(fluid.getBlock().getRegistryName().getResourceDomain());
+		ModContainer m = Loader.instance().getIndexedModList().get(fluid.getBlock().getRegistryName().getResourceDomain());
 		if (m == null)
 			return "Minecraft";
 		else
 			return m.getName();
 
-		// return modName;
 	}
-
-	// public static String getModNameForFluid(Fluid fluid) {
-	// for (FluidContainerData d :
-	// FluidContainerRegistry.getRegisteredFluidContainerData()) {
-	// if (fluid == d.fluid.getFluid())
-	// return getModNameForItem(d.filledContainer.getItem());
-	// }
-	// return "Unknown";
-	// }
 
 	public static boolean equalOreDict(ItemStack a, ItemStack b) {
 		int[] ar = OreDictionary.getOreIDs(a);
@@ -93,8 +60,7 @@ public class Util {
 		return false;
 	}
 
-	public static <E> boolean contains(List<E> list, E e,
-			Comparator<? super E> c) {
+	public static <E> boolean contains(List<E> list, E e, Comparator<? super E> c) {
 		for (E a : list)
 			if (c.compare(a, e) == 0)
 				return true;
@@ -113,69 +79,4 @@ public class Util {
 		return a;
 	}
 
-	public static void spawnItemStack(World worldIn, double x, double y,
-			double z, ItemStack stack) {
-		if (stack == null || worldIn.isRemote)
-			return;
-		Random RANDOM = worldIn.rand;
-		float f = RANDOM.nextFloat() * 0.8F + 0.1F;
-		float f1 = RANDOM.nextFloat() * 0.8F + 0.1F;
-		float f2 = RANDOM.nextFloat() * 0.8F + 0.1F;
-
-		while (stack.stackSize > 0) {
-			int i = RANDOM.nextInt(21) + 10;
-
-			if (i > stack.stackSize) {
-				i = stack.stackSize;
-			}
-
-			stack.stackSize -= i;
-			EntityItem entityitem = new EntityItem(worldIn, x + f, y + f1, z
-					+ f2,
-					new ItemStack(stack.getItem(), i, stack.getMetadata()));
-
-			if (stack.hasTagCompound()) {
-				entityitem.getEntityItem().setTagCompound(
-						(NBTTagCompound) stack.getTagCompound().copy());
-			}
-
-			float f3 = 0.05F;
-			entityitem.motionX = RANDOM.nextGaussian() * f3;
-			entityitem.motionY = RANDOM.nextGaussian() * f3
-					+ 0.20000000298023224D;
-			entityitem.motionZ = RANDOM.nextGaussian() * f3;
-			worldIn.spawnEntityInWorld(entityitem);
-		}
-	}
-
-	public static List<BlockPos> getSides(BlockPos pos) {
-		List<BlockPos> lis = Lists.newArrayList();
-		lis.add(pos.up());
-		lis.add(pos.down());
-		lis.add(pos.east());
-		lis.add(pos.west());
-		lis.add(pos.north());
-		lis.add(pos.south());
-		return lis;
-	}
-
-	public static void updateTile(World world, BlockPos pos) {
-		if (world == null || world.isRemote || world.getTileEntity(pos) == null
-				|| !world.getChunkFromBlockCoords(pos).isLoaded())
-			return;
-		WorldServer w = (WorldServer) world;
-		for (EntityPlayer p : w.playerEntities) {
-			if (p.getPosition().getDistance(pos.getX(), pos.getY(), pos.getZ()) < 32) {
-				try {
-					((EntityPlayerMP) p).connection.sendPacket(world
-							.getTileEntity(pos).getUpdatePacket());
-					world.getTileEntity(pos).markDirty();
-				} catch (Error e) {
-					System.out.println(e.getMessage());
-					e.printStackTrace();
-				}
-			}
-		}
-
-	}
 }

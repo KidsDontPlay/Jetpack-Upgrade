@@ -1,13 +1,6 @@
 package mrriegel.jjetpacks.items;
 
-import mrriegel.jjetpacks.helper.NBTHelper;
-import mrriegel.jjetpacks.network.MessageReduce;
-import mrriegel.jjetpacks.network.PacketHandler;
-import net.minecraft.entity.EntityLivingBase;
-import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.util.DamageSource;
 
 public class ItemJetpackRFTools extends ItemJetpackRF {
 
@@ -30,11 +23,11 @@ public class ItemJetpackRFTools extends ItemJetpackRF {
 	public int maxTransfer(ItemStack container) {
 		switch (container.getItemDamage()) {
 		case 0:
-			return 50;
+			return 100;
 		case 1:
-			return 400;
+			return 800;
 		case 2:
-			return 3200;
+			return 6400;
 		default:
 			break;
 		}

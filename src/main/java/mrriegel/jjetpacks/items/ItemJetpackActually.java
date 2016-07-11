@@ -23,11 +23,11 @@ public class ItemJetpackActually extends ItemJetpackRF {
 	public int maxTransfer(ItemStack container) {
 		switch (container.getItemDamage()) {
 		case 0:
-			return 50;
+			return 100;
 		case 1:
-			return 400;
+			return 800;
 		case 2:
-			return 3200;
+			return 6400;
 		default:
 			break;
 		}

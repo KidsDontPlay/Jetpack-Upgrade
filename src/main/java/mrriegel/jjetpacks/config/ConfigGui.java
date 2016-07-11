@@ -8,12 +8,7 @@ import net.minecraftforge.fml.client.config.GuiConfig;
 
 public class ConfigGui extends GuiConfig {
 	public ConfigGui(GuiScreen parent) {
-		super(parent, new ConfigElement(
-				ConfigHandler.config
-						.getCategory(Configuration.CATEGORY_GENERAL))
-				.getChildElements(), JJetpacks.MODID, false, false,
-				GuiConfig
-						.getAbridgedConfigPath(ConfigHandler.config.toString()));
+		super(parent, new ConfigElement(ConfigHandler.config.getCategory(Configuration.CATEGORY_GENERAL)).getChildElements(), JJetpacks.MODID, false, false, GuiConfig.getAbridgedConfigPath(ConfigHandler.config.toString()));
 	}
 
 }
