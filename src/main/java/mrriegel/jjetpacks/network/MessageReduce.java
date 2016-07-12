@@ -1,9 +1,9 @@
 package mrriegel.jjetpacks.network;
 
 import io.netty.buffer.ByteBuf;
+import mrriegel.jjetpacks.helper.Util;
 import mrriegel.jjetpacks.items.ItemJetpackBase;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.inventory.EntityEquipmentSlot;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessageHandler;
@@ -43,7 +43,7 @@ public class MessageReduce implements IMessage {
 				public void run() {
 					EntityPlayer p = ctx.getServerHandler().playerEntity;
 					p.fallDistance = -1;
-					ItemStack jet = p.inventory.armorInventory[EntityEquipmentSlot.CHEST.getIndex()];
+					ItemStack jet = Util.getJetpack(p);
 					((ItemJetpackBase) jet.getItem()).reduceFuel(jet, message.amount, message.hover, false);
 				}
 			});

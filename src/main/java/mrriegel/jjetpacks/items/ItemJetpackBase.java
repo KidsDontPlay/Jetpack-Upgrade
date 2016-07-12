@@ -51,11 +51,11 @@ public abstract class ItemJetpackBase extends ItemArmor implements ISpecialArmor
 
 	public abstract int reduceFuel(ItemStack stack, int amount, boolean hover, boolean simulate);
 
-	public abstract float getMaxVerticalSpeed(ItemStack stack);
+	public abstract double getMaxVerticalSpeed(ItemStack stack);
 
-	public abstract float getMaxHorizontalSpeed(ItemStack stack);
+	public abstract double getMaxHorizontalSpeed(ItemStack stack);
 
-	public abstract float getAcceleration(ItemStack stack);
+	public abstract double getAcceleration(ItemStack stack);
 
 	public abstract int getDamageReduce(ItemStack stack);
 
@@ -69,25 +69,33 @@ public abstract class ItemJetpackBase extends ItemArmor implements ISpecialArmor
 
 	public abstract double getHoverSink(ItemStack stack);
 
-	public float getVSpeed(ItemStack stack) {
+	public double getVSpeed(ItemStack stack) {
 		if (stack.getTagCompound() == null || !stack.getTagCompound().hasKey("vspeed")) {
-			NBTHelper.setFloat(stack, "vspeed", 1f);
+			NBTHelper.setDouble(stack, "vspeed", 1f);
 		}
-		return NBTHelper.getFloat(stack, "vspeed");
+		return NBTHelper.getDouble(stack, "vspeed");
 	}
 
-	public float getHSpeed(ItemStack stack) {
+	public double getHSpeed(ItemStack stack) {
 		if (stack.getTagCompound() == null || !stack.getTagCompound().hasKey("hspeed")) {
-			NBTHelper.setFloat(stack, "hspeed", 1f);
+			NBTHelper.setDouble(stack, "hspeed", 1f);
 		}
-		return NBTHelper.getFloat(stack, "hspeed");
+		return NBTHelper.getDouble(stack, "hspeed");
 	}
 
-	public float getAcce(ItemStack stack) {
+	public double getAcce(ItemStack stack) {
 		if (stack.getTagCompound() == null || !stack.getTagCompound().hasKey("acce")) {
-			NBTHelper.setFloat(stack, "acce", 1f);
+			NBTHelper.setDouble(stack, "acce", 1f);
 		}
-		return NBTHelper.getFloat(stack, "acce");
+		return NBTHelper.getDouble(stack, "acce");
+	}
+
+	public ItemStack getArmor(ItemStack stack) {
+		return NBTHelper.getItemStack(stack, "armor");
+	}
+
+	public void setArmor(ItemStack stack, ItemStack armor) {
+		NBTHelper.setItemStack(stack, "armor", armor);
 	}
 
 	@Override
@@ -201,10 +209,11 @@ public abstract class ItemJetpackBase extends ItemArmor implements ISpecialArmor
 		boolean canMove = false;
 		if (NBTHelper.getBoolean(itemStack, "hover")) {
 			if (getFuel(itemStack) > reduceFuel(itemStack, 2, true, true)) {
-				if (player.isSneaking())
+				if (player.isSneaking()) {
 					player.motionY = -.2;
-				else
+				} else {
 					player.motionY = getHoverSink(itemStack);
+				}
 				canMove = true;
 				PacketHandler.INSTANCE.sendToServer(new MessageReduce(2, true));
 			} else
@@ -225,7 +234,7 @@ public abstract class ItemJetpackBase extends ItemArmor implements ISpecialArmor
 			boolean right = Minecraft.getMinecraft().gameSettings.keyBindRight.isKeyDown();
 			boolean forward = Minecraft.getMinecraft().gameSettings.keyBindForward.isKeyDown();
 			boolean backward = Minecraft.getMinecraft().gameSettings.keyBindBack.isKeyDown();
-			float thrust = getMaxHorizontalSpeed(itemStack) * getHSpeed(itemStack);
+			float thrust = (float) (getMaxHorizontalSpeed(itemStack) * getHSpeed(itemStack));
 			if (forward)
 				player.moveRelative(0, thrust, thrust);
 			else if (backward)

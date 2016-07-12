@@ -2,6 +2,8 @@ package mrriegel.jjetpacks.proxy;
 
 import mrriegel.jjetpacks.JJetpacks;
 import mrriegel.jjetpacks.config.ConfigHandler;
+import mrriegel.jjetpacks.gui.ContainerJetpack;
+import mrriegel.jjetpacks.gui.GuiJetpack;
 import mrriegel.jjetpacks.init.CraftingRecipes;
 import mrriegel.jjetpacks.init.ModItems;
 import mrriegel.jjetpacks.network.PacketHandler;
@@ -26,18 +28,8 @@ public class CommonProxy implements IGuiHandler {
 			JJetpacks.botania = true;
 		if (Loader.isModLoaded("actuallyadditions"))
 			JJetpacks.actually = true;
-		if (Loader.isModLoaded("Botania"))
-			JJetpacks.botania = true;
 		if (Loader.isModLoaded("BloodMagic"))
 			JJetpacks.blood = true;
-		if (Loader.isModLoaded("advgenerators"))
-			JJetpacks.generators = true;
-		if (Loader.isModLoaded("randomthings"))
-			JJetpacks.random = true;
-		if (Loader.isModLoaded("roots"))
-			JJetpacks.roots = true;
-		if (Loader.isModLoaded("forestry"))
-			JJetpacks.forestry = true;
 		PacketHandler.init();
 		ModItems.init();
 	}
@@ -52,12 +44,12 @@ public class CommonProxy implements IGuiHandler {
 
 	@Override
 	public Object getServerGuiElement(int ID, EntityPlayer player, World world, int x, int y, int z) {
-		return null;
+		return new ContainerJetpack(player.inventory);
 	}
 
 	@Override
 	public Object getClientGuiElement(int ID, EntityPlayer player, World world, int x, int y, int z) {
-		return null;
+		return new GuiJetpack(new ContainerJetpack(player.inventory), player.inventory);
 	}
 
 }

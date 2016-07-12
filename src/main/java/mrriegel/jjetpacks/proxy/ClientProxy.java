@@ -2,6 +2,7 @@ package mrriegel.jjetpacks.proxy;
 
 import mrriegel.jjetpacks.JJetpacks;
 import mrriegel.jjetpacks.helper.NBTHelper;
+import mrriegel.jjetpacks.helper.Util;
 import mrriegel.jjetpacks.init.ModItems;
 import mrriegel.jjetpacks.items.ItemJetpackBase;
 import mrriegel.jjetpacks.network.MessageGUI;
@@ -10,7 +11,6 @@ import mrriegel.jjetpacks.network.PacketHandler;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.inventory.EntityEquipmentSlot;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumParticleTypes;
 import net.minecraft.util.math.MathHelper;
@@ -59,7 +59,7 @@ public class ClientProxy extends CommonProxy {
 		if (world != null) {
 			for (EntityPlayer p : world.playerEntities) {
 				if (p.getDistanceToEntity(Minecraft.getMinecraft().thePlayer) < 32) {
-					ItemStack chest = p.inventory.armorInventory[EntityEquipmentSlot.CHEST.getIndex()];
+					ItemStack chest = Util.getJetpack(Minecraft.getMinecraft().thePlayer);
 					Vec3d vec = p.getPositionVector();
 					vec = getPointUsingAnglesRange(vec, p.rotationYaw - 180f, 0, .55f);
 					if (chest != null && chest.getItem() instanceof ItemJetpackBase && (NBTHelper.getBoolean(chest, "active") || NBTHelper.getBoolean(chest, "hover"))) {
@@ -74,13 +74,13 @@ public class ClientProxy extends CommonProxy {
 	@SubscribeEvent
 	public void onKey(InputEvent.KeyInputEvent e) {
 		if (hover.isPressed() && Minecraft.getMinecraft().inGameHasFocus) {
-			ItemStack chest = Minecraft.getMinecraft().thePlayer.inventory.armorInventory[EntityEquipmentSlot.CHEST.getIndex()];
+			ItemStack chest = Util.getJetpack(Minecraft.getMinecraft().thePlayer);
 			if (chest != null && chest.getItem() instanceof ItemJetpackBase) {
 				PacketHandler.INSTANCE.sendToServer(new MessageHover());
 			}
 		}
 		if (gui.isPressed() && Minecraft.getMinecraft().inGameHasFocus) {
-			ItemStack chest = Minecraft.getMinecraft().thePlayer.inventory.armorInventory[EntityEquipmentSlot.CHEST.getIndex()];
+			ItemStack chest = Util.getJetpack(Minecraft.getMinecraft().thePlayer);
 			if (chest != null && chest.getItem() instanceof ItemJetpackBase) {
 				PacketHandler.INSTANCE.sendToServer(new MessageGUI());
 			}

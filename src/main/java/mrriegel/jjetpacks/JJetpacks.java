@@ -21,7 +21,7 @@ public class JJetpacks {
 	@SidedProxy(clientSide = "mrriegel.jjetpacks.proxy.ClientProxy", serverSide = "mrriegel.jjetpacks.proxy.CommonProxy")
 	public static CommonProxy proxy;
 
-	public static boolean rftools, eio, botania, actually, blood, generators, random, roots, forestry;
+	public static boolean rftools, eio, botania, actually, blood;
 
 	@EventHandler
 	public void preInit(FMLPreInitializationEvent event) {

@@ -1,32 +1,19 @@
 package mrriegel.jjetpacks.helper;
 
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Random;
 
 import javax.annotation.Nonnull;
 
-import net.minecraft.entity.item.EntityItem;
+import mrriegel.jjetpacks.items.ItemJetpackBase;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.inventory.EntityEquipmentSlot;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
-import net.minecraft.world.WorldServer;
 import net.minecraftforge.fluids.Fluid;
-import net.minecraftforge.fluids.FluidContainerRegistry;
-import net.minecraftforge.fluids.FluidStack;
-import net.minecraftforge.fluids.IFluidContainerItem;
 import net.minecraftforge.fml.common.Loader;
 import net.minecraftforge.fml.common.ModContainer;
 import net.minecraftforge.oredict.OreDictionary;
-
-import com.google.common.collect.Lists;
 
 public class Util {
 
@@ -67,16 +54,11 @@ public class Util {
 		return false;
 	}
 
-	public static FluidStack getFluid(ItemStack s) {
-		if (s == null || s.getItem() == null)
-			return null;
-		FluidStack a = null;
-		a = FluidContainerRegistry.getFluidForFilledItem(s);
-		if (a != null)
-			return a;
-		if (s.getItem() instanceof IFluidContainerItem)
-			a = ((IFluidContainerItem) s.getItem()).getFluid(s);
-		return a;
+	public static ItemStack getJetpack(EntityPlayer player) {
+		ItemStack jet = player.inventory.armorInventory[EntityEquipmentSlot.CHEST.getIndex()];
+		if (jet != null && jet.getItem() instanceof ItemJetpackBase)
+			return jet;
+		return null;
 	}
 
 }

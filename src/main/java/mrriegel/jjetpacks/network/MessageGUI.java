@@ -2,6 +2,7 @@ package mrriegel.jjetpacks.network;
 
 import io.netty.buffer.ByteBuf;
 import mrriegel.jjetpacks.JJetpacks;
+import mrriegel.jjetpacks.helper.Util;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessageHandler;
@@ -25,8 +26,8 @@ public class MessageGUI implements IMessage {
 				@Override
 				public void run() {
 					EntityPlayer p = ctx.getServerHandler().playerEntity;
-					p.openGui(JJetpacks.instance, 0, p.worldObj, 0, 0, 0);
-					System.out.println("gui");
+					if (Util.getJetpack(p) != null)
+						p.openGui(JJetpacks.instance, 0, p.worldObj, 0, 0, 0);
 				}
 			});
 			return null;

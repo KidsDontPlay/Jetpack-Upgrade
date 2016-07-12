@@ -2,7 +2,7 @@ package mrriegel.jjetpacks.items;
 
 import net.minecraft.item.ItemStack;
 
-public class ItemJetpackActually extends ItemJetpackRF {
+public class ItemJetpackEIO extends ItemJetpackRF {
 
 	@Override
 	public int getMaxEnergyStored(ItemStack container) {
@@ -36,7 +36,7 @@ public class ItemJetpackActually extends ItemJetpackRF {
 
 	@Override
 	public String getName() {
-		return "actuallyjetpack";
+		return "eiojetpack";
 	}
 
 	@Override

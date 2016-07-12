@@ -60,14 +60,14 @@ public class ItemJetpackRFTools extends ItemJetpackRF {
 	}
 
 	@Override
-	public float getMaxVerticalSpeed(ItemStack stack) {
+	public double getMaxVerticalSpeed(ItemStack stack) {
 		switch (stack.getItemDamage()) {
 		case 0:
-			return 0.25f;
+			return 0.25;
 		case 1:
-			return 0.35f;
+			return 0.35;
 		case 2:
-			return 0.5f;
+			return 0.5;
 		default:
 			break;
 		}
@@ -75,14 +75,14 @@ public class ItemJetpackRFTools extends ItemJetpackRF {
 	}
 
 	@Override
-	public float getMaxHorizontalSpeed(ItemStack stack) {
+	public double getMaxHorizontalSpeed(ItemStack stack) {
 		switch (stack.getItemDamage()) {
 		case 0:
-			return 0.15f;
+			return 0.15;
 		case 1:
-			return 0.35f;
+			return 0.35;
 		case 2:
-			return 0.55f;
+			return 0.55;
 		default:
 			break;
 		}
@@ -90,14 +90,14 @@ public class ItemJetpackRFTools extends ItemJetpackRF {
 	}
 
 	@Override
-	public float getAcceleration(ItemStack stack) {
+	public double getAcceleration(ItemStack stack) {
 		switch (stack.getItemDamage()) {
 		case 0:
-			return 0.1f;
+			return 0.1;
 		case 1:
-			return 0.2f;
+			return 0.2;
 		case 2:
-			return 0.3f;
+			return 0.3;
 		default:
 			break;
 		}
