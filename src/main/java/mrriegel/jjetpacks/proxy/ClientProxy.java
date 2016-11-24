@@ -1,13 +1,12 @@
 package mrriegel.jjetpacks.proxy;
 
 import mrriegel.jjetpacks.JJetpacks;
-import mrriegel.jjetpacks.helper.NBTHelper;
-import mrriegel.jjetpacks.helper.Util;
 import mrriegel.jjetpacks.init.ModItems;
 import mrriegel.jjetpacks.items.ItemJetpackBase;
 import mrriegel.jjetpacks.network.MessageGUI;
 import mrriegel.jjetpacks.network.MessageHover;
-import mrriegel.jjetpacks.network.PacketHandler;
+import mrriegel.limelib.helper.NBTStackHelper;
+import mrriegel.limelib.network.PacketHandler;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.entity.player.EntityPlayer;
@@ -24,7 +23,6 @@ import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.InputEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent.ClientTickEvent;
-import net.minecraftforge.fml.common.network.NetworkRegistry;
 
 import org.lwjgl.input.Keyboard;
 
@@ -43,7 +41,6 @@ public class ClientProxy extends CommonProxy {
 	public void init(FMLInitializationEvent event) {
 		super.init(event);
 		MinecraftForge.EVENT_BUS.register(this);
-		NetworkRegistry.INSTANCE.registerGuiHandler(JJetpacks.instance, new CommonProxy());
 		ClientRegistry.registerKeyBinding(hover);
 		ClientRegistry.registerKeyBinding(gui);
 	}
@@ -59,10 +56,10 @@ public class ClientProxy extends CommonProxy {
 		if (world != null) {
 			for (EntityPlayer p : world.playerEntities) {
 				if (p.getDistanceToEntity(Minecraft.getMinecraft().thePlayer) < 32) {
-					ItemStack chest = Util.getJetpack(Minecraft.getMinecraft().thePlayer);
+					ItemStack chest = ItemJetpackBase.getJetpack(Minecraft.getMinecraft().thePlayer);
 					Vec3d vec = p.getPositionVector();
 					vec = getPointUsingAnglesRange(vec, p.rotationYaw - 180f, 0, .55f);
-					if (chest != null && chest.getItem() instanceof ItemJetpackBase && (NBTHelper.getBoolean(chest, "active") || NBTHelper.getBoolean(chest, "hover"))) {
+					if (chest != null && chest.getItem() instanceof ItemJetpackBase && (NBTStackHelper.getBoolean(chest, "active") || NBTStackHelper.getBoolean(chest, "hover"))) {
 						for (int i = 0; i < 3; i++)
 							world.spawnParticle(EnumParticleTypes.FLAME, vec.xCoord + (world.rand.nextDouble() - .5), vec.yCoord, vec.zCoord + (world.rand.nextDouble() - .5), 0, -.5, 0, 0);
 					}
@@ -74,15 +71,15 @@ public class ClientProxy extends CommonProxy {
 	@SubscribeEvent
 	public void onKey(InputEvent.KeyInputEvent e) {
 		if (hover.isPressed() && Minecraft.getMinecraft().inGameHasFocus) {
-			ItemStack chest = Util.getJetpack(Minecraft.getMinecraft().thePlayer);
+			ItemStack chest = ItemJetpackBase.getJetpack(Minecraft.getMinecraft().thePlayer);
 			if (chest != null && chest.getItem() instanceof ItemJetpackBase) {
-				PacketHandler.INSTANCE.sendToServer(new MessageHover());
+				PacketHandler.sendToServer(new MessageHover());
 			}
 		}
 		if (gui.isPressed() && Minecraft.getMinecraft().inGameHasFocus) {
-			ItemStack chest = Util.getJetpack(Minecraft.getMinecraft().thePlayer);
+			ItemStack chest = ItemJetpackBase.getJetpack(Minecraft.getMinecraft().thePlayer);
 			if (chest != null && chest.getItem() instanceof ItemJetpackBase) {
-				PacketHandler.INSTANCE.sendToServer(new MessageGUI());
+				PacketHandler.sendToServer(new MessageGUI());
 			}
 		}
 	}

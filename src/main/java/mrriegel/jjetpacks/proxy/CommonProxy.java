@@ -6,31 +6,28 @@ import mrriegel.jjetpacks.gui.ContainerJetpack;
 import mrriegel.jjetpacks.gui.GuiJetpack;
 import mrriegel.jjetpacks.init.CraftingRecipes;
 import mrriegel.jjetpacks.init.ModItems;
-import mrriegel.jjetpacks.network.PacketHandler;
+import mrriegel.jjetpacks.network.MessageButton;
+import mrriegel.jjetpacks.network.MessageGUI;
+import mrriegel.jjetpacks.network.MessageHover;
+import mrriegel.jjetpacks.network.MessageReduce;
+import mrriegel.limelib.network.PacketHandler;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.world.World;
-import net.minecraftforge.fml.common.Loader;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 import net.minecraftforge.fml.common.network.IGuiHandler;
 import net.minecraftforge.fml.common.network.NetworkRegistry;
+import net.minecraftforge.fml.relauncher.Side;
 
 public class CommonProxy implements IGuiHandler {
 
 	public void preInit(FMLPreInitializationEvent event) {
 		ConfigHandler.refreshConfig(event.getSuggestedConfigurationFile());
-		if (Loader.isModLoaded("rftools"))
-			JJetpacks.rftools = true;
-		if (Loader.isModLoaded("EnderIO"))
-			JJetpacks.eio = true;
-		if (Loader.isModLoaded("Botania"))
-			JJetpacks.botania = true;
-		if (Loader.isModLoaded("actuallyadditions"))
-			JJetpacks.actually = true;
-		if (Loader.isModLoaded("BloodMagic"))
-			JJetpacks.blood = true;
-		PacketHandler.init();
+		PacketHandler.registerMessage(MessageButton.class, Side.SERVER);
+		PacketHandler.registerMessage(MessageGUI.class, Side.SERVER);
+		PacketHandler.registerMessage(MessageHover.class, Side.SERVER);
+		PacketHandler.registerMessage(MessageReduce.class, Side.SERVER);
 		ModItems.init();
 	}
 

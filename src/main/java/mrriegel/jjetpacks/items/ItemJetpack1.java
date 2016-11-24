@@ -2,7 +2,11 @@ package mrriegel.jjetpacks.items;
 
 import net.minecraft.item.ItemStack;
 
-public class ItemJetpackActually extends ItemJetpackRF {
+public class ItemJetpack1 extends ItemJetpackEnergy {
+
+	public ItemJetpack1() {
+		super("actually");
+	}
 
 	@Override
 	public int getMaxEnergyStored(ItemStack container) {
@@ -32,16 +36,6 @@ public class ItemJetpackActually extends ItemJetpackRF {
 			break;
 		}
 		return 0;
-	}
-
-	@Override
-	public String getName() {
-		return "actuallyjetpack";
-	}
-
-	@Override
-	public int getNumber() {
-		return 3;
 	}
 
 	@Override
@@ -93,7 +87,7 @@ public class ItemJetpackActually extends ItemJetpackRF {
 	public double getAcceleration(ItemStack stack) {
 		switch (stack.getItemDamage()) {
 		case 0:
-			return 0.1;
+			return 0.12;
 		case 1:
 			return 0.2;
 		case 2:

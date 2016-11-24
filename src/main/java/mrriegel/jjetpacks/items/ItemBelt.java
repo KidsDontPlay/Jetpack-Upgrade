@@ -1,14 +1,12 @@
 package mrriegel.jjetpacks.items;
 
 import mrriegel.jjetpacks.CreativeTab;
-import net.minecraft.item.Item;
+import mrriegel.limelib.item.CommonItem;
 
-public class ItemBelt extends Item {
+public class ItemBelt extends CommonItem {
 	public ItemBelt() {
-		super();
+		super("belt");
 		this.setCreativeTab(CreativeTab.tab1);
 		this.setMaxStackSize(1);
-		this.setRegistryName("belt");
-		this.setUnlocalizedName(getRegistryName().toString());
 	}
 }

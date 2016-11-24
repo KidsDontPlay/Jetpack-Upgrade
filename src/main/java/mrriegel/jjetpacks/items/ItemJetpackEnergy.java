@@ -2,12 +2,21 @@ package mrriegel.jjetpacks.items;
 
 import java.util.List;
 
+import mrriegel.limelib.util.EnergyStorageExt;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.util.EnumFacing;
+import net.minecraftforge.common.capabilities.Capability;
+import net.minecraftforge.common.capabilities.ICapabilityProvider;
+import net.minecraftforge.energy.CapabilityEnergy;
 import cofh.api.energy.IEnergyContainerItem;
 
-public abstract class ItemJetpackRF extends ItemJetpackBase implements IEnergyContainerItem {
+public abstract class ItemJetpackEnergy extends ItemJetpackBase implements IEnergyContainerItem {
+
+	public ItemJetpackEnergy(String name) {
+		super(name);
+	}
 
 	@Override
 	public int receiveEnergy(ItemStack container, int maxReceive, boolean simulate) {
@@ -45,6 +54,25 @@ public abstract class ItemJetpackRF extends ItemJetpackBase implements IEnergyCo
 			return 0;
 		}
 		return container.getTagCompound().getInteger("Energy");
+	}
+
+	@Override
+	public ICapabilityProvider initCapabilities(final ItemStack stack, NBTTagCompound nbt) {
+		return new ICapabilityProvider() {
+
+			@Override
+			public boolean hasCapability(Capability<?> capability, EnumFacing facing) {
+				return capability == CapabilityEnergy.ENERGY;
+			}
+
+			@Override
+			public <T> T getCapability(Capability<T> capability, EnumFacing facing) {
+				if (capability == CapabilityEnergy.ENERGY) {
+					return (T) new EnergyStorageExt(getMaxFuel(stack), maxTransfer(stack));
+				}
+				return null;
+			}
+		};
 	}
 
 	public abstract int maxTransfer(ItemStack container);

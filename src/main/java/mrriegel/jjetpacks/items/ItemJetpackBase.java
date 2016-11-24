@@ -5,10 +5,11 @@ import java.util.UUID;
 
 import mrriegel.jjetpacks.CreativeTab;
 import mrriegel.jjetpacks.ModelJetpack;
-import mrriegel.jjetpacks.helper.NBTHelper;
 import mrriegel.jjetpacks.network.MessageHover;
 import mrriegel.jjetpacks.network.MessageReduce;
-import mrriegel.jjetpacks.network.PacketHandler;
+import mrriegel.limelib.helper.NBTStackHelper;
+import mrriegel.limelib.item.CommonArmorItem;
+import mrriegel.limelib.network.PacketHandler;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.model.ModelBiped;
 import net.minecraft.client.renderer.ItemMeshDefinition;
@@ -20,34 +21,33 @@ import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.SharedMonsterAttributes;
 import net.minecraft.entity.ai.attributes.AttributeModifier;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.init.SoundEvents;
 import net.minecraft.inventory.EntityEquipmentSlot;
 import net.minecraft.item.EnumRarity;
 import net.minecraft.item.Item;
-import net.minecraft.item.ItemArmor;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.DamageSource;
 import net.minecraft.world.World;
 import net.minecraftforge.client.model.ModelLoader;
 import net.minecraftforge.common.ISpecialArmor;
+import net.minecraftforge.common.util.EnumHelper;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
-public abstract class ItemJetpackBase extends ItemArmor implements ISpecialArmor {
+public abstract class ItemJetpackBase extends CommonArmorItem implements ISpecialArmor {
 
-	public ItemJetpackBase() {
-		super(ArmorMaterial.IRON, 0, EntityEquipmentSlot.CHEST);
+	public ItemJetpackBase(String name) {
+		super(EnumHelper.addArmorMaterial("jetpack", "null", 17, new int[] { 2, 6, 5, 2 }, 0, SoundEvents.ITEM_ARMOR_EQUIP_IRON, 1.0F), 0, EntityEquipmentSlot.CHEST, name);
 		this.setCreativeTab(CreativeTab.tab1);
 		this.setHasSubtypes(true);
-		this.setRegistryName(getName());
-		this.setUnlocalizedName(getRegistryName().toString());
 	}
 
-	public abstract String getName();
-
-	public abstract int getNumber();
+	public int getNumber() {
+		return 3;
+	}
 
 	public abstract int reduceFuel(ItemStack stack, int amount, boolean hover, boolean simulate);
 
@@ -70,37 +70,37 @@ public abstract class ItemJetpackBase extends ItemArmor implements ISpecialArmor
 	public abstract double getHoverSink(ItemStack stack);
 
 	public double getVSpeed(ItemStack stack) {
-		if (stack.getTagCompound() == null || !stack.getTagCompound().hasKey("vspeed")) {
-			NBTHelper.setDouble(stack, "vspeed", 1f);
+		if (!NBTStackHelper.hasTag(stack, "vspeed")) {
+			NBTStackHelper.setDouble(stack, "vspeed", 1f);
 		}
-		return NBTHelper.getDouble(stack, "vspeed");
+		return NBTStackHelper.getDouble(stack, "vspeed");
 	}
 
 	public double getHSpeed(ItemStack stack) {
-		if (stack.getTagCompound() == null || !stack.getTagCompound().hasKey("hspeed")) {
-			NBTHelper.setDouble(stack, "hspeed", 1f);
+		if (!NBTStackHelper.hasTag(stack, "hspeed")) {
+			NBTStackHelper.setDouble(stack, "hspeed", 1f);
 		}
-		return NBTHelper.getDouble(stack, "hspeed");
+		return NBTStackHelper.getDouble(stack, "hspeed");
 	}
 
 	public double getAcce(ItemStack stack) {
-		if (stack.getTagCompound() == null || !stack.getTagCompound().hasKey("acce")) {
-			NBTHelper.setDouble(stack, "acce", 1f);
+		if (!NBTStackHelper.hasTag(stack, "acce")) {
+			NBTStackHelper.setDouble(stack, "acce", 1f);
 		}
-		return NBTHelper.getDouble(stack, "acce");
+		return NBTStackHelper.getDouble(stack, "acce");
 	}
 
 	public ItemStack getArmor(ItemStack stack) {
-		return NBTHelper.getItemStack(stack, "armor");
+		return NBTStackHelper.getItemStack(stack, "armor");
 	}
 
 	public void setArmor(ItemStack stack, ItemStack armor) {
-		NBTHelper.setItemStack(stack, "armor", armor);
+		NBTStackHelper.setItemStack(stack, "armor", armor);
 	}
 
 	@Override
 	@SideOnly(Side.CLIENT)
-	public void getSubItems(Item item, CreativeTabs tab, List list) {
+	public void getSubItems(Item item, CreativeTabs tab, List<ItemStack> list) {
 		for (int i = 0; i < getNumber(); i++) {
 			ItemStack x = new ItemStack(item, 1, i);
 			list.add(x);
@@ -201,13 +201,13 @@ public abstract class ItemJetpackBase extends ItemArmor implements ISpecialArmor
 
 	@Override
 	public void onArmorTick(World world, EntityPlayer player, ItemStack itemStack) {
-		NBTHelper.setString(itemStack, "player", player.getDisplayNameString());
-		if (NBTHelper.getBoolean(itemStack, "hover") && player.onGround)
-			NBTHelper.setBoolean(itemStack, "hover", false);
+		NBTStackHelper.setString(itemStack, "player", player.getDisplayNameString());
+		if (NBTStackHelper.getBoolean(itemStack, "hover") && player.onGround)
+			NBTStackHelper.setBoolean(itemStack, "hover", false);
 		if (!world.isRemote)
 			return;
 		boolean canMove = false;
-		if (NBTHelper.getBoolean(itemStack, "hover")) {
+		if (NBTStackHelper.getBoolean(itemStack, "hover")) {
 			if (getFuel(itemStack) > reduceFuel(itemStack, 2, true, true)) {
 				if (player.isSneaking()) {
 					player.motionY = -.2;
@@ -215,19 +215,19 @@ public abstract class ItemJetpackBase extends ItemArmor implements ISpecialArmor
 					player.motionY = getHoverSink(itemStack);
 				}
 				canMove = true;
-				PacketHandler.INSTANCE.sendToServer(new MessageReduce(2, true));
+				PacketHandler.sendToServer(new MessageReduce(2, true));
 			} else
-				PacketHandler.INSTANCE.sendToServer(new MessageHover());
+				PacketHandler.sendToServer(new MessageHover());
 		}
 		if (Minecraft.getMinecraft().gameSettings.keyBindJump.isKeyDown() && getFuel(itemStack) > reduceFuel(itemStack, 2, false, true) && Minecraft.getMinecraft().inGameHasFocus) {
-			NBTHelper.setBoolean(itemStack, "active", true);
-			if (player.motionY <= getMaxVerticalSpeed(itemStack) * getVSpeed(itemStack)) {
+			NBTStackHelper.setBoolean(itemStack, "active", true);
+			if (player.motionY + 0.1 < getMaxVerticalSpeed(itemStack) * getVSpeed(itemStack)) {
 				player.motionY += (player.motionY < 0 ? 1.25d : 1d) * getAcceleration(itemStack) * getAcce(itemStack);
 				canMove = true;
-				PacketHandler.INSTANCE.sendToServer(new MessageReduce(2, false));
+				PacketHandler.sendToServer(new MessageReduce(2, false));
 			}
 		} else
-			NBTHelper.setBoolean(itemStack, "active", false);
+			NBTStackHelper.setBoolean(itemStack, "active", false);
 
 		if (canMove && getFuel(itemStack) > reduceFuel(itemStack, 1, false, true) && Minecraft.getMinecraft().inGameHasFocus) {
 			boolean left = Minecraft.getMinecraft().gameSettings.keyBindLeft.isKeyDown();
@@ -244,7 +244,7 @@ public abstract class ItemJetpackBase extends ItemArmor implements ISpecialArmor
 			else if (right)
 				player.moveRelative(-thrust, 0, thrust);
 			if (forward || right || left || backward)
-				PacketHandler.INSTANCE.sendToServer(new MessageReduce(1, false));
+				PacketHandler.sendToServer(new MessageReduce(1, false));
 		}
 	}
 
@@ -268,6 +268,13 @@ public abstract class ItemJetpackBase extends ItemArmor implements ISpecialArmor
 
 	int getFuelPerDamage() {
 		return 10;
+	}
+
+	public static ItemStack getJetpack(EntityPlayer player) {
+		ItemStack jet = player.inventory.armorInventory[EntityEquipmentSlot.CHEST.getIndex()];
+		if (jet != null && jet.getItem() instanceof ItemJetpackBase)
+			return jet;
+		return null;
 	}
 
 }

@@ -1,39 +1,19 @@
 package mrriegel.jjetpacks.network;
 
-import io.netty.buffer.ByteBuf;
-import mrriegel.jjetpacks.helper.NBTHelper;
-import mrriegel.jjetpacks.helper.Util;
+import mrriegel.jjetpacks.items.ItemJetpackBase;
+import mrriegel.limelib.helper.NBTStackHelper;
+import mrriegel.limelib.network.AbstractMessage;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
-import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
-import net.minecraftforge.fml.common.network.simpleimpl.IMessageHandler;
-import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraftforge.fml.relauncher.Side;
 
-public class MessageHover implements IMessage {
-
-	@Override
-	public void fromBytes(ByteBuf buf) {
-	}
+public class MessageHover extends AbstractMessage<MessageHover> {
 
 	@Override
-	public void toBytes(ByteBuf buf) {
-	}
-
-	public static class Handler implements IMessageHandler<MessageHover, IMessage> {
-
-		@Override
-		public IMessage onMessage(final MessageHover message, final MessageContext ctx) {
-			ctx.getServerHandler().playerEntity.getServerWorld().addScheduledTask(new Runnable() {
-				@Override
-				public void run() {
-					EntityPlayer p = ctx.getServerHandler().playerEntity;
-					ItemStack jet = Util.getJetpack(p);
-					NBTHelper.setBoolean(jet, "hover", !NBTHelper.getBoolean(jet, "hover"));
-				}
-			});
-			return null;
-		}
-
+	public void handleMessage(EntityPlayer player, NBTTagCompound nbt, Side side) {
+		ItemStack jet = ItemJetpackBase.getJetpack(player);
+		NBTStackHelper.setBoolean(jet, "hover", !NBTStackHelper.getBoolean(jet, "hover"));
 	}
 
 }

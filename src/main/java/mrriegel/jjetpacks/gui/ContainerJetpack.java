@@ -1,35 +1,33 @@
 package mrriegel.jjetpacks.gui;
 
-import mrriegel.jjetpacks.helper.Util;
+import java.util.List;
+
+import mrriegel.jjetpacks.items.ItemJetpackBase;
+import mrriegel.limelib.gui.CommonContainer;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.InventoryPlayer;
-import net.minecraft.inventory.Container;
 import net.minecraft.inventory.IInventory;
-import net.minecraft.inventory.InventoryBasic;
-import net.minecraft.inventory.Slot;
-import net.minecraft.inventory.SlotFurnaceFuel;
+import net.minecraft.item.ItemStack;
 
-public class ContainerJetpack extends Container {
-	IInventory inv;
+public class ContainerJetpack extends CommonContainer {
 
 	public ContainerJetpack(InventoryPlayer playerInventory) {
-		inv = new InventoryBasic(null, false, 1);
-		this.addSlotToContainer(new SlotFurnaceFuel(inv, 0, 56, 53));
-
-		for (int i = 0; i < 3; ++i) {
-			for (int j = 0; j < 9; ++j) {
-				this.addSlotToContainer(new Slot(playerInventory, j + i * 9 + 9, 8 + j * 18, 84 + i * 18));
-			}
-		}
-
-		for (int k = 0; k < 9; ++k) {
-			this.addSlotToContainer(new Slot(playerInventory, k, 8 + k * 18, 142));
-		}
+		super(playerInventory);
 	}
 
 	@Override
 	public boolean canInteractWith(EntityPlayer playerIn) {
-		return Util.getJetpack(playerIn) != null;
+		return ItemJetpackBase.getJetpack(playerIn) != null;
+	}
+
+	@Override
+	protected void initSlots() {
+		initPlayerSlots(8, 84);
+	}
+
+	@Override
+	protected List<Area> allowedSlots(ItemStack stack, IInventory inv, int index) {
+		return null;
 	}
 
 }
