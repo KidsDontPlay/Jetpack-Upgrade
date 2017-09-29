@@ -11,11 +11,13 @@ import mrriegel.limelib.helper.NBTHelper;
 import mrriegel.limelib.network.PacketHandler;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraftforge.fml.client.config.GuiCheckBox;
 import net.minecraftforge.fml.client.config.GuiSlider;
 
 public class GuiJetpack extends CommonGuiScreen {
 
 	private GuiSlider vspeed, hspeed, acce;
+	Jetpack jetpack;
 
 	public GuiJetpack() {
 		super();
@@ -29,12 +31,14 @@ public class GuiJetpack extends CommonGuiScreen {
 		vspeed.displayString = "Vertical Speed " + String.format("%.2f", vspeed.sliderValue);
 		hspeed.displayString = "Horizontal Speed " + String.format("%.2f", hspeed.sliderValue);
 		acce.displayString = "Accelaration " + String.format("%.2f", acce.sliderValue);
+		//		buttonList.stream().filter(b -> b.id == jetpack.guiIndex).findAny().ifPresent(b -> b.enabled = false);
+		buttonList.stream().filter(b -> b.id >= 0 && b.id <= 6).forEach(b -> b.enabled = b.id != jetpack.guiIndex);
 	}
 
 	@Override
 	public void initGui() {
 		super.initGui();
-		Jetpack jetpack = Jetpack.getJetpack(mc.player);
+		jetpack = Jetpack.getJetpack(mc.player);
 		buttonList.add(vspeed = new GuiSlider(100, guiLeft + 7, guiTop + 20, 130, 20, "Verctical", "", 0.0, 1.0, jetpack.VSpeed, false, false));
 		vspeed.sliderValue = jetpack.VSpeed;
 		buttonList.add(hspeed = new GuiSlider(101, guiLeft + 7, guiTop + 45, 130, 20, "Horizontal", "", 0.0, 1.0, jetpack.HSpeed, false, false));
@@ -45,27 +49,34 @@ public class GuiJetpack extends CommonGuiScreen {
 		buttonList.add(new CommonGuiButton(1, guiLeft + 110, guiTop + 93, 9, 9, null));
 		buttonList.add(new CommonGuiButton(2, guiLeft + 120, guiTop + 93, 9, 9, null));
 		buttonList.add(new CommonGuiButton(3, guiLeft + 100, guiTop + 103, 9, 9, null));
-		buttonList.add(new CommonGuiButton(4, guiLeft + 110, guiTop + 103, 9, 9, null));
-		buttonList.add(new CommonGuiButton(5, guiLeft + 120, guiTop + 103, 9, 9, null));
-		buttonList.add(new CommonGuiButton(6, guiLeft + 100, guiTop + 113, 9, 9, null));
-		buttonList.add(new CommonGuiButton(7, guiLeft + 110, guiTop + 113, 9, 9, null));
-		buttonList.add(new CommonGuiButton(8, guiLeft + 120, guiTop + 113, 9, 9, null));
-		for (int y = 0; y < 3; y++) {
-			for (int x = 0; x < 3; x++) {
+		//		buttonList.add(new CommonGuiButton(4, guiLeft + 110, guiTop + 103, 9, 9, null));
+		buttonList.add(new CommonGuiButton(4, guiLeft + 120, guiTop + 103, 9, 9, null));
+		buttonList.add(new CommonGuiButton(5, guiLeft + 100, guiTop + 113, 9, 9, null));
+		//		buttonList.add(new CommonGuiButton(6, guiLeft + 110, guiTop + 113, 9, 9, null));
+		buttonList.add(new CommonGuiButton(6, guiLeft + 120, guiTop + 113, 9, 9, null));
 
-			}
-		}
+		buttonList.add(new GuiCheckBox(10, guiLeft + 10, guiTop + 100, "GUI Overlay", jetpack.guiIndex >= 0));
+
 	}
 
 	@Override
 	protected void actionPerformed(GuiButton button) throws IOException {
 		super.actionPerformed(button);
-		if (button.id < 9) {
+		if (button.id < 7) {
 			for (GuiButton b : buttonList)
-				if (b.id < 9)
+				if (b.id < 7)
 					b.enabled = true;
 			button.enabled = false;
-
+			jetpack.guiIndex = button.id;
+			NBTTagCompound nbt = new NBTTagCompound();
+			NBTHelper.set(nbt, "index", jetpack.guiIndex);
+			PacketHandler.sendToServer(new Message2Server(nbt, MessageAction.GUI));
+			buttonList.stream().filter(b -> b.id == 10).findAny().ifPresent(b -> ((GuiCheckBox) b).setIsChecked(true));
+		} else if (button.id == 10) {
+			jetpack.guiIndex = ((GuiCheckBox) button).isChecked() ? 0 : -1;
+			NBTTagCompound nbt = new NBTTagCompound();
+			NBTHelper.set(nbt, "index", jetpack.guiIndex);
+			PacketHandler.sendToServer(new Message2Server(nbt, MessageAction.GUI));
 		}
 	}
 

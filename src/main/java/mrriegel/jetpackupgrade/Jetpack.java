@@ -32,6 +32,7 @@ import net.minecraftforge.common.capabilities.ICapabilityProvider;
 import net.minecraftforge.common.capabilities.ICapabilitySerializable;
 import net.minecraftforge.common.util.INBTSerializable;
 import net.minecraftforge.energy.CapabilityEnergy;
+import net.minecraftforge.energy.EnergyStorage;
 import net.minecraftforge.energy.IEnergyStorage;
 import net.minecraftforge.event.AttachCapabilitiesEvent;
 import net.minecraftforge.event.RegistryEvent.Register;
@@ -51,11 +52,35 @@ public class Jetpack implements INBTSerializable<NBTTagCompound> {
 
 	public ItemStack stack;
 	public boolean installed, hover, active, hasEnergyBefore, needSync = true;
-	public double maxHSpeed = .5, maxVSpeed = .5, maxAcce = .3, HSpeed = 1, VSpeed = 1, acce = 1;
+	public double maxHSpeed, maxVSpeed, maxAcce, hoverSink, HSpeed = 1, VSpeed = 1, acce = 1;
+	public int guiIndex = 6, tier = 0;
 
 	private void armorTick(EntityPlayer player) {
 		if (!installed)
 			return;
+		if (maxHSpeed == 0)
+			switch (tier) {
+			case 1:
+				maxVSpeed = .25;
+				maxHSpeed = .10;
+				maxAcce = .12;
+				hoverSink = -0.05;
+				break;
+			case 2:
+				maxVSpeed = .35;
+				maxHSpeed = .30;
+				maxAcce = .21;
+				hoverSink = -0.03;
+				break;
+			case 3:
+				maxVSpeed = .45;
+				maxHSpeed = .50;
+				maxAcce = .3;
+				hoverSink = 0;
+				break;
+			default:
+				break;
+			}
 		if (hover && player.world.isRemote) {
 			//			BlockPos under = new BlockPos(player).down();
 			//			AxisAlignedBB aabb = player.world.getBlockState(under).getCollisionBoundingBox(player.world, under);
@@ -74,20 +99,30 @@ public class Jetpack implements INBTSerializable<NBTTagCompound> {
 		if (hover) {
 			if (getFuel() > reduceFuel(2, true)) {
 				if (player.isSneaking()) {
-					player.motionY = -.2;
+					double val = -.2;
+					if (player.motionY + .1 < val)
+						player.motionY += (player.motionY < 0 ? 1.25d : 1d) * maxAcce * acce;
+					else
+						player.motionY = val;
 				} else {
-					player.motionY = getHoverSink();
+					if (player.motionY + .1 < hoverSink)
+						player.motionY += (player.motionY < 0 ? 1.25d : 1d) * maxAcce * acce;
+					else
+						player.motionY = hoverSink;
 				}
 				canMove = true;
+				player.fallDistance = 0f;
 				PacketHandler.sendToServer(new Message2Server(NBTHelper.set(new NBTTagCompound(), "amount", 2), MessageAction.REDUCE));
 			} else
 				PacketHandler.sendToServer(new Message2Server(new NBTTagCompound(), MessageAction.HOVER));
 		}
 		if (Minecraft.getMinecraft().gameSettings.keyBindJump.isKeyDown() && getFuel() > reduceFuel(2, true) && Minecraft.getMinecraft().inGameHasFocus) {
 			active = true;
-			if (player.motionY + 0.1 < maxVSpeed * VSpeed) {
+			if (player.motionY + .1 < maxVSpeed * VSpeed) {
 				player.motionY += (player.motionY < 0 ? 1.25d : 1d) * maxAcce * acce;
 				canMove = true;
+				player.fallDistance = 0f;
+				player.fall(distance, damageMultiplier);
 				PacketHandler.sendToServer(new Message2Server(NBTHelper.set(new NBTTagCompound(), "amount", 2), MessageAction.REDUCE));
 			}
 		} else
@@ -113,19 +148,16 @@ public class Jetpack implements INBTSerializable<NBTTagCompound> {
 
 	}
 
-	private double getHoverSink() {
-		return -.01;
-	}
-
 	public int reduceFuel(int amount, boolean simulate) {
-		return getEnergy().extractEnergy(amount * 100, simulate);
+		int defa = 100;
+		return getEnergy().extractEnergy(amount * (hover ? defa : defa * (int) Math.pow(3, tier - 1)), simulate);
 	}
 
 	public int getFuel() {
 		return getEnergy().getEnergyStored();
 	}
 
-	IEnergyStorage getEnergy() {
+	public IEnergyStorage getEnergy() {
 		return stack.getCapability(CapabilityEnergy.ENERGY, null);
 	}
 
@@ -136,12 +168,14 @@ public class Jetpack implements INBTSerializable<NBTTagCompound> {
 		NBTHelper.set(nbt, "hover", hover);
 		//		NBTHelper.set(nbt, "active", active);
 		NBTHelper.set(nbt, "hasEnergyBefore", hasEnergyBefore);
-		NBTHelper.set(nbt, "maxHSpeed", maxHSpeed);
-		NBTHelper.set(nbt, "maxVSpeed", maxVSpeed);
-		NBTHelper.set(nbt, "maxAcce", maxAcce);
+		//		NBTHelper.set(nbt, "maxHSpeed", maxHSpeed);
+		//		NBTHelper.set(nbt, "maxVSpeed", maxVSpeed);
+		//		NBTHelper.set(nbt, "maxAcce", maxAcce);
 		NBTHelper.set(nbt, "HSpeed", HSpeed);
 		NBTHelper.set(nbt, "VSpeed", VSpeed);
 		NBTHelper.set(nbt, "acce", acce);
+		NBTHelper.set(nbt, "guiIndex", guiIndex);
+		NBTHelper.set(nbt, "tier", tier);
 		return nbt;
 	}
 
@@ -151,12 +185,14 @@ public class Jetpack implements INBTSerializable<NBTTagCompound> {
 		hover = NBTHelper.get(nbt, "hover", Boolean.class);
 		//		active = NBTHelper.get(nbt, "active", Boolean.class);
 		hasEnergyBefore = NBTHelper.get(nbt, "hasEnergyBefore", Boolean.class);
-		maxHSpeed = NBTHelper.get(nbt, "maxHSpeed", Double.class);
-		maxVSpeed = NBTHelper.get(nbt, "maxVSpeed", Double.class);
-		maxAcce = NBTHelper.get(nbt, "maxAcce", Double.class);
+		//		maxHSpeed = NBTHelper.get(nbt, "maxHSpeed", Double.class);
+		//		maxVSpeed = NBTHelper.get(nbt, "maxVSpeed", Double.class);
+		//		maxAcce = NBTHelper.get(nbt, "maxAcce", Double.class);
 		HSpeed = NBTHelper.get(nbt, "HSpeed", Double.class);
 		VSpeed = NBTHelper.get(nbt, "VSpeed", Double.class);
 		acce = NBTHelper.get(nbt, "acce", Double.class);
+		guiIndex = NBTHelper.get(nbt, "guiIndex", Integer.class);
+		tier = NBTHelper.get(nbt, "tier", Integer.class);
 	}
 
 	@CapabilityInject(Jetpack.class)
@@ -235,6 +271,7 @@ public class Jetpack implements INBTSerializable<NBTTagCompound> {
 						if (jp.installed)
 							return ItemStack.EMPTY;
 						jp.installed = true;
+						jp.tier = InvHelper.extractItem(new InvWrapper(var1), s -> s.getItem() == ModItems.upgrade, 1, true).getItemDamage() + 1;
 						return res;
 					}
 				};
@@ -250,6 +287,7 @@ public class Jetpack implements INBTSerializable<NBTTagCompound> {
 		Jetpack jp;
 		if ((jp = getJetpack(event.getItemStack())) != null && jp.installed) {
 			event.getToolTip().add("Energy: " + jp.getFuel());
+			event.getToolTip().add("Tier: " + jp.tier);
 		}
 	}
 
@@ -292,73 +330,74 @@ public class Jetpack implements INBTSerializable<NBTTagCompound> {
 		ItemStack stack;
 		IEnergyStorage energy;
 
-		public EnergyProvider(ItemStack stack, int capacity, int transfer) {
+		public EnergyProvider(ItemStack stack) {
 			super();
 			this.stack = stack;
-			energy = new IEnergyStorage() {
-
-				@Override
-				public int receiveEnergy(int maxReceive, boolean simulate) {
-					if (flux())
-						return ((IEnergyContainerItem) stack.getItem()).receiveEnergy(stack, maxReceive, simulate);
-					int energy = NBTStackHelper.get(stack, "Energy", int.class);
-					int energyReceived = Math.min(capacity - energy, Math.min(transfer, maxReceive));
-					if (!simulate) {
-						energy += energyReceived;
-						NBTStackHelper.set(stack, "Energy", energy);
-					}
-					return energyReceived;
-				}
-
-				@Override
-				public int getMaxEnergyStored() {
-					if (flux())
-						return ((IEnergyContainerItem) stack.getItem()).getMaxEnergyStored(stack);
-					return capacity;
-				}
-
-				@Override
-				public int getEnergyStored() {
-					if (flux())
-						return ((IEnergyContainerItem) stack.getItem()).getEnergyStored(stack);
-					return NBTStackHelper.getSafe(stack, "Energy", int.class).orElse(0);
-				}
-
-				@Override
-				public int extractEnergy(int maxExtract, boolean simulate) {
-					if (flux())
-						return ((IEnergyContainerItem) stack.getItem()).extractEnergy(stack, maxExtract, simulate);
-					if (!NBTStackHelper.hasTag(stack, "Energy"))
-						return 0;
-					int energy = NBTStackHelper.get(stack, "Energy", int.class);
-					int energyExtracted = Math.min(energy, Math.min(transfer, maxExtract));
-					if (!simulate) {
-						energy -= energyExtracted;
-						NBTStackHelper.set(stack, "Energy", energy);
-					}
-					return energyExtracted;
-				}
-
-				@Override
-				public boolean canReceive() {
-					return true;
-				}
-
-				@Override
-				public boolean canExtract() {
-					return true;
-				}
-			};
-		}
-
-		public EnergyProvider(ItemStack stack) {
-			this(stack, 1000000, 800);
+			energy = new EnergyStorage(0, 0);
 		}
 
 		@Override
 		public boolean hasCapability(Capability<?> capability, EnumFacing facing) {
 			Jetpack jp = getJetpack(stack);
-			return jp != null && jp.installed && capability == CapabilityEnergy.ENERGY;
+			boolean ret = jp != null && jp.installed && capability == CapabilityEnergy.ENERGY;
+			if (ret && energy.getMaxEnergyStored() == 0)
+				energy = new IEnergyStorage() {
+
+					int capacity = 50000 * (int) Math.pow(4, jp.tier), transfer = 30 * (int) Math.pow(4, jp.tier);
+
+					@Override
+					public int receiveEnergy(int maxReceive, boolean simulate) {
+						if (flux())
+							return ((IEnergyContainerItem) stack.getItem()).receiveEnergy(stack, maxReceive, simulate);
+						int energy = NBTStackHelper.get(stack, "Energy", int.class);
+						int energyReceived = Math.min(capacity - energy, Math.min(transfer, maxReceive));
+						if (!simulate) {
+							energy += energyReceived;
+							NBTStackHelper.set(stack, "Energy", energy);
+						}
+						return energyReceived;
+					}
+
+					@Override
+					public int getMaxEnergyStored() {
+						if (flux())
+							return ((IEnergyContainerItem) stack.getItem()).getMaxEnergyStored(stack);
+						return capacity;
+					}
+
+					@Override
+					public int getEnergyStored() {
+						if (flux())
+							return ((IEnergyContainerItem) stack.getItem()).getEnergyStored(stack);
+						return NBTStackHelper.getSafe(stack, "Energy", int.class).orElse(0);
+					}
+
+					@Override
+					public int extractEnergy(int maxExtract, boolean simulate) {
+						if (flux())
+							return ((IEnergyContainerItem) stack.getItem()).extractEnergy(stack, maxExtract, simulate);
+						if (!NBTStackHelper.hasTag(stack, "Energy"))
+							return 0;
+						int energy = NBTStackHelper.get(stack, "Energy", int.class);
+						int energyExtracted = Math.min(energy, Math.min(transfer, maxExtract));
+						if (!simulate) {
+							energy -= energyExtracted;
+							NBTStackHelper.set(stack, "Energy", energy);
+						}
+						return energyExtracted;
+					}
+
+					@Override
+					public boolean canReceive() {
+						return true;
+					}
+
+					@Override
+					public boolean canExtract() {
+						return true;
+					}
+				};
+			return ret;
 		}
 
 		@Override

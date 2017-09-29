@@ -1,6 +1,7 @@
 {
   "result": {
-    "item": "jetpackupgrade:jetpack_upgrade"
+    "item": "jetpackupgrade:jetpack_upgrade",
+    "data": 0
   },
   "pattern": [
     "gdg",

@@ -23,15 +23,20 @@ public class Message2Server extends AbstractMessage {
 			return;
 		switch (NBTHelper.get(nbt, "action", MessageAction.class)) {
 		case GUI:
-			jp.acce = NBTHelper.get(nbt, "acce", Double.class);
-			jp.HSpeed = NBTHelper.get(nbt, "hspeed", Double.class);
-			jp.VSpeed = NBTHelper.get(nbt, "vspeed", Double.class);
+			if (NBTHelper.hasTag(nbt, "acce")) {
+				jp.acce = NBTHelper.get(nbt, "acce", Double.class);
+				jp.HSpeed = NBTHelper.get(nbt, "hspeed", Double.class);
+				jp.VSpeed = NBTHelper.get(nbt, "vspeed", Double.class);
+			} else if (NBTHelper.hasTag(nbt, "index")) {
+				jp.guiIndex = NBTHelper.get(nbt, "index", Integer.class);
+			}
 			break;
 		case HOVER:
 			jp.hover = NBTHelper.get(nbt, "hover", boolean.class);
 			break;
 		case REDUCE:
 			jp.reduceFuel(NBTHelper.get(nbt, "amount", Integer.class), false);
+			player.fallDistance = 0f;
 			break;
 		}
 	}
