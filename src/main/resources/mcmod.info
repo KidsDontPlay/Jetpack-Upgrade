@@ -1,8 +1,8 @@
 [
 {
-  "modid": "storagenetwork",
-  "name": "Storage Network",
-  "description": "Connect your inventories and manage your items easily.",
+  "modid": "jetpackupgrade",
+  "name": "jetpackupgrade",
+  "description": "jetpackupgrade",
   "version": "${version}",
   "mcversion": "${mcversion}",
   "url": "",

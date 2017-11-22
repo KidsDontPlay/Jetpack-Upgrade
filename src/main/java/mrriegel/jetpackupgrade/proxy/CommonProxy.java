@@ -25,7 +25,6 @@ public class CommonProxy implements IGuiHandler {
 		Jetpack.register();
 		ModItems.init();
 		CraftingRecipes.init();
-
 	}
 
 	public void init(FMLInitializationEvent event) {

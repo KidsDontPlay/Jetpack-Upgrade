@@ -1,5 +1,11 @@
 package mrriegel.jetpackupgrade;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.IntStream;
+
+import com.google.common.base.Strings;
+
 import cofh.redstoneflux.api.IEnergyContainerItem;
 import mrriegel.jetpackupgrade.init.ModItems;
 import mrriegel.jetpackupgrade.network.Message2Server;
@@ -10,6 +16,7 @@ import mrriegel.limelib.helper.InvHelper;
 import mrriegel.limelib.helper.NBTHelper;
 import mrriegel.limelib.helper.NBTStackHelper;
 import mrriegel.limelib.network.PacketHandler;
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
@@ -21,9 +28,11 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.item.crafting.IRecipe;
 import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.nbt.NBTTagInt;
 import net.minecraft.util.EnumFacing;
+import net.minecraft.util.NonNullList;
 import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.text.TextFormatting;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.Capability.IStorage;
 import net.minecraftforge.common.capabilities.CapabilityInject;
@@ -32,7 +41,6 @@ import net.minecraftforge.common.capabilities.ICapabilityProvider;
 import net.minecraftforge.common.capabilities.ICapabilitySerializable;
 import net.minecraftforge.common.util.INBTSerializable;
 import net.minecraftforge.energy.CapabilityEnergy;
-import net.minecraftforge.energy.EnergyStorage;
 import net.minecraftforge.energy.IEnergyStorage;
 import net.minecraftforge.event.AttachCapabilitiesEvent;
 import net.minecraftforge.event.RegistryEvent.Register;
@@ -51,89 +59,67 @@ import net.minecraftforge.oredict.ShapelessOreRecipe;
 public class Jetpack implements INBTSerializable<NBTTagCompound> {
 
 	public ItemStack stack;
-	public boolean installed, hover, active, hasEnergyBefore, needSync = true;
-	public double maxHSpeed, maxVSpeed, maxAcce, hoverSink, HSpeed = 1, VSpeed = 1, acce = 1;
-	public int guiIndex = 6, tier = 0;
+	public boolean installed, hover, active, set;
+	public double maxHSpeed, maxVSpeed, hoverSink, HSpeed = 1, VSpeed = 1;
+	public GuiPos guiPos = GuiPos.BOTTOMRIGHT;
+	public int tier = 0;
 
 	private void armorTick(EntityPlayer player) {
 		if (!installed)
 			return;
-		if (maxHSpeed == 0)
-			switch (tier) {
-			case 1:
-				maxVSpeed = .25;
-				maxHSpeed = .10;
-				maxAcce = .12;
-				hoverSink = -0.05;
-				break;
-			case 2:
-				maxVSpeed = .35;
-				maxHSpeed = .30;
-				maxAcce = .21;
-				hoverSink = -0.03;
-				break;
-			case 3:
-				maxVSpeed = .45;
-				maxHSpeed = .50;
-				maxAcce = .3;
-				hoverSink = 0;
-				break;
-			default:
-				break;
-			}
+		defaultStats();
 		if (hover && player.world.isRemote) {
-			//			BlockPos under = new BlockPos(player).down();
-			//			AxisAlignedBB aabb = player.world.getBlockState(under).getCollisionBoundingBox(player.world, under);
-			if (/*aabb != null*/player.onGround) {
+			if (player.onGround) {
 				hover = false;
-				needSync = true;
 				PacketHandler.sendToServer(new Message2Server(NBTHelper.set(new NBTTagCompound(), "hover", hover), MessageAction.HOVER));
 			}
 		}
 		if (!player.world.isRemote) {
-			if (player.ticksExisted % 10 == 0 || needSync)
+			if (player.ticksExisted % 10 == 0)
 				sync((EntityPlayerMP) player);
 			return;
 		}
 		boolean canMove = false;
+		//HOVER
 		if (hover) {
-			if (getFuel() > reduceFuel(2, true)) {
+			if (getFuel() >= reduceFuel(2, true)) {
+				float thrust = VThrust(player);
 				if (player.isSneaking()) {
 					double val = -.2;
 					if (player.motionY + .1 < val)
-						player.motionY += (player.motionY < 0 ? 1.25d : 1d) * maxAcce * acce;
+						player.moveRelative(0, thrust, 0, thrust);
 					else
 						player.motionY = val;
 				} else {
 					if (player.motionY + .1 < hoverSink)
-						player.motionY += (player.motionY < 0 ? 1.25d : 1d) * maxAcce * acce;
+						player.moveRelative(0, thrust * 1.2f, 0, thrust * 1.2f);
 					else
 						player.motionY = hoverSink;
 				}
 				canMove = true;
 				player.fallDistance = 0f;
 				PacketHandler.sendToServer(new Message2Server(NBTHelper.set(new NBTTagCompound(), "amount", 2), MessageAction.REDUCE));
-			} else
+			} else {
+				hover = false;
 				PacketHandler.sendToServer(new Message2Server(new NBTTagCompound(), MessageAction.HOVER));
-		}
-		if (Minecraft.getMinecraft().gameSettings.keyBindJump.isKeyDown() && getFuel() > reduceFuel(2, true) && Minecraft.getMinecraft().inGameHasFocus) {
-			active = true;
-			if (player.motionY + .1 < maxVSpeed * VSpeed) {
-				player.motionY += (player.motionY < 0 ? 1.25d : 1d) * maxAcce * acce;
-				canMove = true;
-				player.fallDistance = 0f;
-				player.fall(distance, damageMultiplier);
-				PacketHandler.sendToServer(new Message2Server(NBTHelper.set(new NBTTagCompound(), "amount", 2), MessageAction.REDUCE));
 			}
+		}
+		if (Minecraft.getMinecraft().gameSettings.keyBindJump.isKeyDown() && getFuel() >= reduceFuel(2, true) && Minecraft.getMinecraft().inGameHasFocus) {
+			active = true;
+			float thrust = VThrust(player);
+			player.moveRelative(0, thrust, 0, thrust);
+			canMove = true;
+			player.fallDistance = 0f;
+			PacketHandler.sendToServer(new Message2Server(NBTHelper.set(new NBTTagCompound(), "amount", 2), MessageAction.REDUCE));
 		} else
 			active = false;
-
-		if (canMove && getFuel() > reduceFuel(1, true) && Minecraft.getMinecraft().inGameHasFocus) {
+		//UP
+		if (canMove && getFuel() >= reduceFuel(1, true) && Minecraft.getMinecraft().inGameHasFocus) {
 			boolean left = Minecraft.getMinecraft().gameSettings.keyBindLeft.isKeyDown();
 			boolean right = Minecraft.getMinecraft().gameSettings.keyBindRight.isKeyDown();
 			boolean forward = Minecraft.getMinecraft().gameSettings.keyBindForward.isKeyDown();
 			boolean backward = Minecraft.getMinecraft().gameSettings.keyBindBack.isKeyDown();
-			float thrust = (float) (maxHSpeed * HSpeed);
+			float thrust = HThrust(player);
 			if (forward)
 				player.moveRelative(0, 0, thrust, thrust);
 			else if (backward)
@@ -145,7 +131,68 @@ public class Jetpack implements INBTSerializable<NBTTagCompound> {
 			if (forward || right || left || backward)
 				PacketHandler.sendToServer(new Message2Server(NBTHelper.set(new NBTTagCompound(), "amount", 1), MessageAction.REDUCE));
 		}
+		//ANTIFALL
+		if (!active && !hover && player.fallDistance > 2.5f && tier > 1 && !player.isCreative()) {
+			BlockPos ent = new BlockPos(player);
+			BlockPos hard = null;
+			int count = 0;
+			while (count < 6) {
+				ent = ent.down();
+				IBlockState state = player.world.getBlockState(ent);
+				if (state.getCollisionBoundingBox(player.world, ent) != null || ent.getY() <= 0) {
+					hard = ent;
+					break;
+				}
+				count++;
+			}
+			if (hard != null && new BlockPos(player).getDistance(hard.getX(), hard.getY(), hard.getZ()) <= Math.min(player.fallDistance, 24f) / 2) {
+				hover = true;
+				PacketHandler.sendToServer(new Message2Server(NBTHelper.set(new NBTTagCompound(), "hover", hover), MessageAction.HOVER));
+			}
+		}
+	}
 
+	private float VThrust(EntityPlayer player) {
+		float thrust = (float) (maxVSpeed * VSpeed);
+		if (player.motionY < 0)
+			thrust *= 1.25f;
+		if (player.isInWater())
+			thrust *= .6f;
+		return thrust;
+	}
+
+	private float HThrust(EntityPlayer player) {
+		float thrust = (float) (maxHSpeed * HSpeed);
+		if (!player.isSprinting())
+			thrust *= .8f;
+		if (player.isInWater())
+			thrust *= .6f;
+		return thrust;
+	}
+
+	private void defaultStats() {
+		if (!set) {
+			switch (tier) {
+			case 1:
+				maxVSpeed = .30;
+				maxHSpeed = .10;
+				hoverSink = -0.045;
+				break;
+			case 2:
+				maxVSpeed = .40;
+				maxHSpeed = .30;
+				hoverSink = -0.025;
+				break;
+			case 3:
+				maxVSpeed = .50;
+				maxHSpeed = .50;
+				hoverSink = 0;
+				break;
+			default:
+				break;
+			}
+			set = true;
+		}
 	}
 
 	public int reduceFuel(int amount, boolean simulate) {
@@ -157,8 +204,24 @@ public class Jetpack implements INBTSerializable<NBTTagCompound> {
 		return getEnergy().getEnergyStored();
 	}
 
+	public int getMaxFuel() {
+		return getEnergy().getMaxEnergyStored();
+	}
+
 	public IEnergyStorage getEnergy() {
 		return stack.getCapability(CapabilityEnergy.ENERGY, null);
+	}
+
+	public List<String> getTooltip() {
+		List<String> lis = new ArrayList<>(4);
+		double percent = getEnergy().getEnergyStored() / (double) getEnergy().getMaxEnergyStored();
+		String energy = (percent < .15 && (System.currentTimeMillis() / 160) % 2 == 0 ? TextFormatting.DARK_RED.toString() : "") + getEnergy().getEnergyStored();
+		String maxEnergy = "" + getEnergy().getMaxEnergyStored();
+		lis.add(TextFormatting.GOLD + "Energy: ");
+		lis.add(TextFormatting.WHITE + energy + TextFormatting.RESET + "/" + maxEnergy);
+		lis.add(TextFormatting.GOLD + "Tier: " + TextFormatting.RESET + Strings.repeat("I", tier));
+		lis.add(TextFormatting.GOLD + "Hover: " + (hover ? TextFormatting.GREEN + "On" : TextFormatting.RED + "Off"));
+		return lis;
 	}
 
 	@Override
@@ -166,32 +229,30 @@ public class Jetpack implements INBTSerializable<NBTTagCompound> {
 		NBTTagCompound nbt = new NBTTagCompound();
 		NBTHelper.set(nbt, "installed", installed);
 		NBTHelper.set(nbt, "hover", hover);
-		//		NBTHelper.set(nbt, "active", active);
-		NBTHelper.set(nbt, "hasEnergyBefore", hasEnergyBefore);
-		//		NBTHelper.set(nbt, "maxHSpeed", maxHSpeed);
-		//		NBTHelper.set(nbt, "maxVSpeed", maxVSpeed);
-		//		NBTHelper.set(nbt, "maxAcce", maxAcce);
+		NBTHelper.set(nbt, "active", active);
 		NBTHelper.set(nbt, "HSpeed", HSpeed);
 		NBTHelper.set(nbt, "VSpeed", VSpeed);
-		NBTHelper.set(nbt, "acce", acce);
-		NBTHelper.set(nbt, "guiIndex", guiIndex);
-		NBTHelper.set(nbt, "tier", tier);
-		return nbt;
+		NBTHelper.set(nbt, "guiIndex", guiPos);
+		return writeToSyncNBT(nbt);
 	}
 
 	@Override
 	public void deserializeNBT(NBTTagCompound nbt) {
 		installed = NBTHelper.get(nbt, "installed", Boolean.class);
 		hover = NBTHelper.get(nbt, "hover", Boolean.class);
-		//		active = NBTHelper.get(nbt, "active", Boolean.class);
-		hasEnergyBefore = NBTHelper.get(nbt, "hasEnergyBefore", Boolean.class);
-		//		maxHSpeed = NBTHelper.get(nbt, "maxHSpeed", Double.class);
-		//		maxVSpeed = NBTHelper.get(nbt, "maxVSpeed", Double.class);
-		//		maxAcce = NBTHelper.get(nbt, "maxAcce", Double.class);
+		active = NBTHelper.get(nbt, "active", Boolean.class);
 		HSpeed = NBTHelper.get(nbt, "HSpeed", Double.class);
 		VSpeed = NBTHelper.get(nbt, "VSpeed", Double.class);
-		acce = NBTHelper.get(nbt, "acce", Double.class);
-		guiIndex = NBTHelper.get(nbt, "guiIndex", Integer.class);
+		guiPos = NBTHelper.get(nbt, "guiIndex", GuiPos.class);
+		readFromSyncNBT(nbt);
+	}
+
+	public NBTTagCompound writeToSyncNBT(NBTTagCompound nbt) {
+		NBTHelper.set(nbt, "tier", tier);
+		return nbt;
+	}
+
+	public void readFromSyncNBT(NBTTagCompound nbt) {
 		tier = NBTHelper.get(nbt, "tier", Integer.class);
 	}
 
@@ -242,10 +303,9 @@ public class Jetpack implements INBTSerializable<NBTTagCompound> {
 	public static void attach(AttachCapabilitiesEvent<ItemStack> event) {
 		if (isChestplate(event.getObject())) {
 			event.addCapability(LOCATION, new JetpackProvider(event.getObject()));
-			Jetpack jp = event.getCapabilities().get(LOCATION).getCapability(JETPACK, null);
 			ICapabilityProvider prov = event.getObject().getItem().initCapabilities(event.getObject(), new NBTTagCompound());
-			jp.hasEnergyBefore = prov != null && prov.hasCapability(CapabilityEnergy.ENERGY, null);
-			if (!jp.hasEnergyBefore) {
+			boolean energy = prov != null && prov.hasCapability(CapabilityEnergy.ENERGY, null);
+			if (!energy) {
 				event.addCapability(new ResourceLocation(JetpackUpgrade.MODID, "jetpack_energy"), new EnergyProvider(event.getObject()));
 			}
 		}
@@ -277,6 +337,35 @@ public class Jetpack implements INBTSerializable<NBTTagCompound> {
 				};
 				recipe.setRegistryName(rl);
 				event.getRegistry().register(recipe);
+				rl = new ResourceLocation(JetpackUpgrade.MODID, "uncraft_" + item);
+				recipe = new ShapelessOreRecipe(null, ItemStack.EMPTY, item) {
+					@Override
+					public ItemStack getCraftingResult(InventoryCrafting var1) {
+						ItemStack res = InvHelper.extractItem(new InvWrapper(var1), s -> s.getItem() == item, 1, true);
+						Jetpack jp = getJetpack(res);
+						if (!jp.installed)
+							return ItemStack.EMPTY;
+						return new ItemStack(ModItems.upgrade, 1, jp.tier - 1);
+					}
+
+					@Override
+					public NonNullList<ItemStack> getRemainingItems(InventoryCrafting inv) {
+						int index = IntStream.range(0, inv.getSizeInventory()).filter(i -> inv.getStackInSlot(i).getItem() == item).findFirst().orElse(0);
+						ItemStack res = InvHelper.extractItem(new InvWrapper(inv), s -> s.getItem() == item, 1, true);
+						Jetpack jp = getJetpack(res);
+						jp.installed = false;
+						NonNullList<ItemStack> ret = NonNullList.withSize(inv.getSizeInventory(), ItemStack.EMPTY);
+						ret.set(index, res);
+						return ret;
+					};
+
+					@Override
+					public ItemStack getRecipeOutput() {
+						return ItemStack.EMPTY;
+					}
+				};
+				recipe.setRegistryName(rl);
+				event.getRegistry().register(recipe);
 
 			}
 		}
@@ -286,8 +375,7 @@ public class Jetpack implements INBTSerializable<NBTTagCompound> {
 	public static void tooltip(ItemTooltipEvent event) {
 		Jetpack jp;
 		if ((jp = getJetpack(event.getItemStack())) != null && jp.installed) {
-			event.getToolTip().add("Energy: " + jp.getFuel());
-			event.getToolTip().add("Tier: " + jp.tier);
+			event.getToolTip().addAll(jp.getTooltip());
 		}
 	}
 
@@ -333,17 +421,16 @@ public class Jetpack implements INBTSerializable<NBTTagCompound> {
 		public EnergyProvider(ItemStack stack) {
 			super();
 			this.stack = stack;
-			energy = new EnergyStorage(0, 0);
 		}
 
 		@Override
 		public boolean hasCapability(Capability<?> capability, EnumFacing facing) {
 			Jetpack jp = getJetpack(stack);
 			boolean ret = jp != null && jp.installed && capability == CapabilityEnergy.ENERGY;
-			if (ret && energy.getMaxEnergyStored() == 0)
+			if (ret && energy == null)
 				energy = new IEnergyStorage() {
 
-					int capacity = 50000 * (int) Math.pow(4, jp.tier), transfer = 30 * (int) Math.pow(4, jp.tier);
+					final int capacity = 50000 * (int) Math.pow(4, jp.tier), transfer = 60 * (int) Math.pow(4, jp.tier);
 
 					@Override
 					public int receiveEnergy(int maxReceive, boolean simulate) {
@@ -405,18 +492,14 @@ public class Jetpack implements INBTSerializable<NBTTagCompound> {
 			return hasCapability(capability, facing) ? CapabilityEnergy.ENERGY.cast(energy) : null;
 		}
 
-		public NBTTagInt serializeNBT() {
-			return (NBTTagInt) CapabilityEnergy.ENERGY.getStorage().writeNBT(CapabilityEnergy.ENERGY, energy, null);
-		}
-
-		public void deserializeNBT(NBTTagInt nbt) {
-			CapabilityEnergy.ENERGY.getStorage().readNBT(CapabilityEnergy.ENERGY, energy, null, nbt);
-		}
-
 		private boolean flux() {
 			return LimeLib.fluxLoaded && stack.getItem() instanceof IEnergyContainerItem;
 		}
 
+	}
+
+	public static enum GuiPos {
+		TOPLEFT, TOP, TOPRIGHT, MIDLEFT, MIDRIGHT, BOTTOMLEFT, BOTTOMRIGHT;
 	}
 
 }

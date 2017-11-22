@@ -1,8 +1,8 @@
 package mrriegel.jetpackupgrade.proxy;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 import org.lwjgl.input.Keyboard;
 
@@ -14,11 +14,13 @@ import mrriegel.jetpackupgrade.network.Message2Server;
 import mrriegel.jetpackupgrade.network.Message2Server.MessageAction;
 import mrriegel.limelib.gui.GuiDrawer;
 import mrriegel.limelib.gui.element.GuiElement;
+import mrriegel.limelib.helper.ColorHelper;
 import mrriegel.limelib.helper.NBTHelper;
 import mrriegel.limelib.network.PacketHandler;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumParticleTypes;
 import net.minecraft.util.math.MathHelper;
@@ -27,6 +29,7 @@ import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.World;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.client.event.RenderGameOverlayEvent.ElementType;
+import net.minecraftforge.client.event.RenderTooltipEvent;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.client.registry.ClientRegistry;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
@@ -82,60 +85,81 @@ public class ClientProxy extends CommonProxy {
 
 	@SubscribeEvent
 	public void onKey(InputEvent.KeyInputEvent event) {
-		if (hover.isPressed() && Minecraft.getMinecraft().inGameHasFocus) {
-			Jetpack jp;
-			if ((jp = Jetpack.getJetpack(mc.player)) != null) {
-				jp.hover ^= true;
-				PacketHandler.sendToServer(new Message2Server(NBTHelper.set(new NBTTagCompound(), "hover", jp.hover), MessageAction.HOVER));
+		if (mc.inGameHasFocus)
+			if (hover.isPressed()) {
+				Jetpack jp;
+				if ((jp = Jetpack.getJetpack(mc.player)) != null) {
+					jp.hover ^= true;
+					PacketHandler.sendToServer(new Message2Server(NBTHelper.set(new NBTTagCompound(), "hover", jp.hover), MessageAction.HOVER));
+				}
+			} else if (gui.isPressed()) {
+				if (Jetpack.getJetpack(mc.player) != null) {
+					GuiDrawer.openGui(new GuiJetpack());
+				}
 			}
-		}
-		if (gui.isPressed() && Minecraft.getMinecraft().inGameHasFocus) {
-			if (Jetpack.getJetpack(mc.player) != null) {
-				GuiDrawer.openGui(new GuiJetpack());
-			}
-		}
+	}
+
+	@SubscribeEvent
+	public void renderTooltip(RenderTooltipEvent.PostText event) {
+		ItemStack hoveredStack = event.getStack();
+		if (hoveredStack.isEmpty())
+			return;
+		if (mc.currentScreen == null)
+			return;
+		Jetpack jp;
+		if ((jp = Jetpack.getJetpack(hoveredStack)) == null || jp.getEnergy() == null || !jp.installed)
+			return;
+		int toolTipY = event.getY();
+		int toolTipX = event.getX();
+		int toolTipW = event.getWidth();
+		int toolTipH = event.getHeight();
+		GuiDrawer drawer = new GuiDrawer(0, 0, 0, 0, 0);
+		int width = toolTipW + 8;
+		int color = ColorHelper.getRainbow(35);
+		color = 0xffee2233;
+		double percent = Math.min(1., (jp.getFuel() / (double) jp.getMaxFuel()));
+		drawer.drawColoredRectangle(toolTipX - 4, toolTipY + toolTipH + 4, width, 4, 0xff222222);
+		//		drawer.drawColoredRectangle(toolTipX - 4, toolTipY + toolTipH + 4, (int) (width * (jp.getFuel() / (double) jp.getMaxFuel())), 4, color);
+		drawer.drawColoredRectangle(toolTipX - 4, toolTipY + toolTipH + 5, (int) (width * percent), 1, color);
+		drawer.drawColoredRectangle(toolTipX - 4, toolTipY + toolTipH + 6, (int) (width * percent), 1, ColorHelper.brighter(color, .15));
+		drawer.drawColoredRectangle(toolTipX - 4, toolTipY + toolTipH + 7, (int) (width * percent), 1, ColorHelper.brighter(color, .3));
+
+		drawer.drawFrame(toolTipX - 4, toolTipY + toolTipH + 4, toolTipW + 7, 4, 1, 0xff000000);
 	}
 
 	@SubscribeEvent
 	public void render(RenderGameOverlayEvent.Post event) {
 		if (event.getType() == ElementType.TEXT) {
 			Jetpack jp = Jetpack.getJetpack(mc.player);
-			if (jp != null && jp.guiIndex >= 0 && jp.guiIndex <= 6) {
-				List<String> lis = new ArrayList<>();
-				lis.add("Jetpack (" + /*jp.stack.getDisplayName() +*/ ")");
-				double percent = jp.getEnergy().getEnergyStored() / (double) jp.getEnergy().getMaxEnergyStored();
-				String energy = (percent < .15 && (mc.player.ticksExisted / 8) % 2 == 0 ? TextFormatting.DARK_RED.toString() : "") + jp.getEnergy().getEnergyStored();
-				String maxEnergy = "" + jp.getEnergy().getMaxEnergyStored();
-				lis.add(TextFormatting.GOLD + "Energy: ");
-				lis.add(energy + TextFormatting.RESET + "/" + maxEnergy);
-				lis.add(TextFormatting.GOLD + "Hover: " + TextFormatting.RESET + (jp.hover ? TextFormatting.GREEN + "On" : TextFormatting.RED + "Off"));
+			if (jp != null && jp.guiPos != null) {
+				List<String> lis = jp.getTooltip();
 				GuiField field = null;
-				switch (jp.guiIndex) {
-				case 0:
+				switch (jp.guiPos) {
+				case TOPLEFT:
 					field = new GuiField(0, 7, 7, lis);
 					break;
-				case 1:
+				case TOP:
 					field = new GuiField(0, 0, 7, lis);
 					field.x = event.getResolution().getScaledWidth() / 2 - field.width / 2;
 					break;
-				case 2:
+				case TOPRIGHT:
 					field = new GuiField(0, 0, 7, lis);
 					field.x = event.getResolution().getScaledWidth() - 7 - field.width;
 					break;
-				case 3:
+				case MIDLEFT:
 					field = new GuiField(0, 7, 0, lis);
 					field.y = event.getResolution().getScaledHeight() / 2 - field.height / 2;
 					break;
-				case 4:
+				case MIDRIGHT:
 					field = new GuiField(0, 0, 0, lis);
 					field.x = event.getResolution().getScaledWidth() - 7 - field.width;
 					field.y = event.getResolution().getScaledHeight() / 2 - field.height / 2;
 					break;
-				case 5:
+				case BOTTOMLEFT:
 					field = new GuiField(0, 7, 0, lis);
 					field.y = event.getResolution().getScaledHeight() - 7 - field.height;
 					break;
-				case 6:
+				case BOTTOMRIGHT:
 					field = new GuiField(0, 7, 0, lis);
 					field.y = event.getResolution().getScaledHeight() - 7 - field.height;
 					field.x = event.getResolution().getScaledWidth() - 7 - field.width;
@@ -159,7 +183,7 @@ public class ClientProxy extends CommonProxy {
 
 		public GuiField(int id, int x, int y, List<String> strings) {
 			super(id, x, y, 0, 0);
-			this.strings = strings == null ? Arrays.asList(TextFormatting.DARK_RED + "ERROR") : strings;
+			this.strings = Optional.ofNullable(strings).orElse(Arrays.asList(TextFormatting.DARK_RED + "ERROR"));
 			int longest = strings.stream().mapToInt(s -> mc.fontRenderer.getStringWidth(s)).max().getAsInt();
 			width = longest + 4;
 			height = (mc.fontRenderer.FONT_HEIGHT + 2) * strings.size() + 2;

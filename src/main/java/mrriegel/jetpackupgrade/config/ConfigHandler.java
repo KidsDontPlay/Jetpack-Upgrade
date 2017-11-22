@@ -6,7 +6,7 @@ import net.minecraftforge.common.config.Configuration;
 
 public class ConfigHandler {
 
-	public static Configuration config;
+	private static Configuration config;
 
 	public static void refreshConfig(File file) {
 		config = new Configuration(file);

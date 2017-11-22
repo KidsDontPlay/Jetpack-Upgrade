@@ -17,7 +17,8 @@ public class MessageCapaSync extends AbstractMessage {
 			shouldSend = false;
 			return;
 		}
-		nbt = jp.serializeNBT();
+		//		nbt = jp.serializeNBT();
+		nbt = jp.writeToSyncNBT(nbt);
 	}
 
 	@Override
@@ -25,7 +26,8 @@ public class MessageCapaSync extends AbstractMessage {
 		Jetpack jp = Jetpack.getJetpack(player);
 		if (jp == null)
 			return;
-		jp.deserializeNBT(nbt);
+		//		jp.deserializeNBT(nbt);
+		jp.readFromSyncNBT(nbt);
 	}
 
 }

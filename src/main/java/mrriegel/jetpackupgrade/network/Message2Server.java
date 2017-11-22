@@ -1,6 +1,7 @@
 package mrriegel.jetpackupgrade.network;
 
 import mrriegel.jetpackupgrade.Jetpack;
+import mrriegel.jetpackupgrade.Jetpack.GuiPos;
 import mrriegel.limelib.helper.NBTHelper;
 import mrriegel.limelib.network.AbstractMessage;
 import net.minecraft.entity.player.EntityPlayer;
@@ -23,16 +24,17 @@ public class Message2Server extends AbstractMessage {
 			return;
 		switch (NBTHelper.get(nbt, "action", MessageAction.class)) {
 		case GUI:
-			if (NBTHelper.hasTag(nbt, "acce")) {
-				jp.acce = NBTHelper.get(nbt, "acce", Double.class);
+			if (NBTHelper.hasTag(nbt, "hspeed")) {
 				jp.HSpeed = NBTHelper.get(nbt, "hspeed", Double.class);
 				jp.VSpeed = NBTHelper.get(nbt, "vspeed", Double.class);
 			} else if (NBTHelper.hasTag(nbt, "index")) {
-				jp.guiIndex = NBTHelper.get(nbt, "index", Integer.class);
+				jp.guiPos = NBTHelper.get(nbt, "index", GuiPos.class);
 			}
 			break;
 		case HOVER:
 			jp.hover = NBTHelper.get(nbt, "hover", boolean.class);
+			if (jp.hover)
+				player.fallDistance = 0f;
 			break;
 		case REDUCE:
 			jp.reduceFuel(NBTHelper.get(nbt, "amount", Integer.class), false);
