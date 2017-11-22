@@ -1,0 +1,20 @@
+{
+  "result": {
+    "item": "jetplates:jetplate",
+    "data": 0
+  },
+  "pattern": [
+    "gdg",
+    "dgd",
+    "gdg"
+  ],
+  "type": "forge:ore_shaped",
+  "key": {
+    "d": {
+      "item": "#GEMDIAMOND"
+    },
+    "g": {
+      "item": "#INGOTGOLD"
+    }
+  }
+}

@@ -1,8 +1,8 @@
 [
 {
-  "modid": "jetpackupgrade",
-  "name": "jetpackupgrade",
-  "description": "jetpackupgrade",
+  "modid": "jetplates",
+  "name": "Jetplates",
+  "description": "jetplates",
   "version": "${version}",
   "mcversion": "${mcversion}",
   "url": "",
