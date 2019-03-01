@@ -4,16 +4,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.IntStream;
 
-import org.apache.commons.lang3.Validate;
-
 import com.google.common.base.Strings;
 
 import cofh.redstoneflux.api.IEnergyContainerItem;
+import mrriegel.jetplates.items.ModItems;
 import mrriegel.jetplates.network.Message2Server;
 import mrriegel.jetplates.network.Message2Server.MessageAction;
 import mrriegel.jetplates.network.MessageCapaSync;
 import mrriegel.jetplates.network.MessageParticle;
-import mrriegel.jetplates.proxy.CommonProxy;
 import mrriegel.limelib.LimeLib;
 import mrriegel.limelib.helper.InvHelper;
 import mrriegel.limelib.helper.NBTHelper;
@@ -48,9 +46,7 @@ import net.minecraftforge.energy.IEnergyStorage;
 import net.minecraftforge.event.AttachCapabilitiesEvent;
 import net.minecraftforge.event.RegistryEvent.Register;
 import net.minecraftforge.event.entity.EntityJoinWorldEvent;
-import net.minecraftforge.event.entity.player.ItemTooltipEvent;
 import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
-import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent.Phase;
 import net.minecraftforge.fml.common.gameevent.TickEvent.PlayerTickEvent;
@@ -72,6 +68,7 @@ public class Jetpack implements INBTSerializable<NBTTagCompound> {
 		if (!installed)
 			return;
 		defaultStats();
+		//getEnergy().receiveEnergy(10000, false);
 		boolean canMove = false, sendHover = false;
 		if (hover && player.world.isRemote) {
 			if (player.onGround) {
@@ -112,8 +109,9 @@ public class Jetpack implements INBTSerializable<NBTTagCompound> {
 		if (Minecraft.getMinecraft().gameSettings.keyBindJump.isKeyDown() && !player.capabilities.isFlying && getFuel() > reduceFuel(2, true) && Minecraft.getMinecraft().inGameHasFocus) {
 			active = true;
 			float thrust = VThrust(player);
+			if (player.motionY >= thrust)
+				thrust -= player.motionY - thrust;
 			player.moveRelative(0, thrust, 0, thrust);
-			//			move(player, 0, thrust * 2, 0);
 			canMove = true;
 			player.fallDistance = 0f;
 			PacketHandler.sendToServer(new Message2Server(NBTHelper.set(new NBTTagCompound(), "amount", 2), MessageAction.REDUCE));
@@ -242,7 +240,6 @@ public class Jetpack implements INBTSerializable<NBTTagCompound> {
 	@Override
 	public NBTTagCompound serializeNBT() {
 		NBTTagCompound nbt = new NBTTagCompound();
-		NBTHelper.set(nbt, "installed", installed);
 		NBTHelper.set(nbt, "hover", hover);
 		NBTHelper.set(nbt, "active", active);
 		NBTHelper.set(nbt, "HSpeed", HSpeed);
@@ -254,7 +251,6 @@ public class Jetpack implements INBTSerializable<NBTTagCompound> {
 
 	@Override
 	public void deserializeNBT(NBTTagCompound nbt) {
-		installed = NBTHelper.get(nbt, "installed", Boolean.class);
 		hover = NBTHelper.get(nbt, "hover", Boolean.class);
 		active = NBTHelper.get(nbt, "active", Boolean.class);
 		HSpeed = NBTHelper.get(nbt, "HSpeed", Double.class);
@@ -265,11 +261,13 @@ public class Jetpack implements INBTSerializable<NBTTagCompound> {
 	}
 
 	public NBTTagCompound writeToSyncNBT(NBTTagCompound nbt) {
+		NBTHelper.set(nbt, "installed", installed);
 		NBTHelper.set(nbt, "tier", tier);
 		return nbt;
 	}
 
 	public void readFromSyncNBT(NBTTagCompound nbt) {
+		installed = NBTHelper.get(nbt, "installed", Boolean.class);
 		tier = NBTHelper.get(nbt, "tier", Integer.class);
 	}
 
@@ -340,8 +338,8 @@ public class Jetpack implements INBTSerializable<NBTTagCompound> {
 	public static void register(Register<IRecipe> event) {
 		for (Item item : ForgeRegistries.ITEMS) {
 			if (item instanceof ItemArmor && ((ItemArmor) item).armorType == EntityEquipmentSlot.CHEST) {
-				ResourceLocation rl = new ResourceLocation(Jetplates.MODID, "craft_" + item);
-				IRecipe recipe = new ShapelessOreRecipe(null, new ItemStack(item), new ItemStack(item), CommonProxy.upgrade) {
+				ResourceLocation rl = new ResourceLocation(Jetplates.MODID, "craft_" + item.getUnlocalizedName());
+				IRecipe recipe = new ShapelessOreRecipe(rl, new ItemStack(item), new ItemStack(item), ModItems.upgrade) {
 					@Override
 					public ItemStack getCraftingResult(InventoryCrafting var1) {
 						ItemStack res = InvHelper.extractItem(new InvWrapper(var1), s -> s.getItem() == getRecipeOutput().getItem(), 1, true);
@@ -349,34 +347,33 @@ public class Jetpack implements INBTSerializable<NBTTagCompound> {
 						if (jp.installed)
 							return ItemStack.EMPTY;
 						jp.installed = true;
-						jp.tier = InvHelper.extractItem(new InvWrapper(var1), s -> s.getItem() == CommonProxy.upgrade, 1, true).getItemDamage() + 1;
+						jp.tier = InvHelper.extractItem(new InvWrapper(var1), s -> s.getItem() == ModItems.upgrade, 1, true).getItemDamage() + 1;
 						return res;
 					}
 				};
 				recipe.setRegistryName(rl);
 				event.getRegistry().register(recipe);
-				rl = new ResourceLocation(Jetplates.MODID, "uncraft_" + item);
-				recipe = new ShapelessOreRecipe(null, ItemStack.EMPTY, item) {
+				rl = new ResourceLocation(Jetplates.MODID, "uncraft_" + item.getUnlocalizedName());
+				recipe = new ShapelessOreRecipe(rl, ItemStack.EMPTY, item) {
 					@Override
 					public ItemStack getCraftingResult(InventoryCrafting var1) {
 						ItemStack res = InvHelper.extractItem(new InvWrapper(var1), s -> s.getItem() == item, 1, true);
 						Jetpack jp = getJetpack(res);
 						if (!jp.installed)
 							return ItemStack.EMPTY;
-						return new ItemStack(CommonProxy.upgrade, 1, jp.tier - 1);
+						return new ItemStack(ModItems.upgrade, 1, jp.tier - 1);
 					}
 
 					@Override
 					public NonNullList<ItemStack> getRemainingItems(InventoryCrafting inv) {
 						int index = IntStream.range(0, inv.getSizeInventory()).filter(i -> inv.getStackInSlot(i).getItem() == item).findFirst().orElse(0);
 						ItemStack res = inv.getStackInSlot(index).copy();
-						Validate.isTrue(!res.isEmpty());
 						Jetpack jp = getJetpack(res);
 						jp.installed = false;
 						NonNullList<ItemStack> ret = NonNullList.withSize(inv.getSizeInventory(), ItemStack.EMPTY);
 						ret.set(index, res);
 						return ret;
-					};
+					}
 
 					@Override
 					public ItemStack getRecipeOutput() {
@@ -390,17 +387,9 @@ public class Jetpack implements INBTSerializable<NBTTagCompound> {
 		}
 	}
 
-	@SubscribeEvent(priority = EventPriority.HIGH)
-	public static void tooltip(ItemTooltipEvent event) {
-		Jetpack jp;
-		if ((jp = getJetpack(event.getItemStack())) != null && jp.installed) {
-			event.getToolTip().addAll(jp.getTooltip());
-		}
-	}
-
 	@SubscribeEvent
 	public static void tick(WorldTickEvent event) {
-		if (event.phase == Phase.END && event.side.isServer() && event.world.getTotalWorldTime() % 5 == 0 && syncDirty) {
+		if (event.phase == Phase.END && event.side.isServer() && event.world.getTotalWorldTime() % (syncDirty ? 5 : 15) == 0) {
 			for (EntityPlayer p : event.world.playerEntities)
 				PacketHandler.sendTo(new MessageParticle(p.world), (EntityPlayerMP) p);
 			syncDirty = false;
@@ -417,6 +406,8 @@ public class Jetpack implements INBTSerializable<NBTTagCompound> {
 
 		public JetpackProvider(ItemStack stack) {
 			this.jp.stack = stack;
+			//			if (FMLCommonHandler.instance().getEffectiveSide().isClient())
+			//				new Exception().printStackTrace();
 		}
 
 		@Override
@@ -526,7 +517,7 @@ public class Jetpack implements INBTSerializable<NBTTagCompound> {
 
 	}
 
-	public static enum GuiPos {
+	public enum GuiPos {
 		TOPLEFT, TOP, TOPRIGHT, MIDLEFT, MIDRIGHT, BOTTOMLEFT, BOTTOMRIGHT;
 	}
 

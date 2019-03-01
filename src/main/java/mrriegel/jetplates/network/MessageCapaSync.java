@@ -14,7 +14,7 @@ public class MessageCapaSync extends AbstractMessage {
 	public MessageCapaSync(EntityPlayer player) {
 		Jetpack jp = Jetpack.getJetpack(player);
 		if (jp == null) {
-			shouldSend = false;
+			shallSend = false;
 			return;
 		}
 		//		nbt = jp.serializeNBT();

@@ -11,6 +11,7 @@ import it.unimi.dsi.fastutil.objects.Object2BooleanOpenHashMap;
 import mrriegel.jetplates.Jetpack;
 import mrriegel.jetplates.Jetplates;
 import mrriegel.jetplates.gui.GuiJetpack;
+import mrriegel.jetplates.items.ModItems;
 import mrriegel.jetplates.network.Message2Server;
 import mrriegel.jetplates.network.Message2Server.MessageAction;
 import mrriegel.limelib.gui.GuiDrawer;
@@ -32,10 +33,12 @@ import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.client.event.RenderGameOverlayEvent.ElementType;
 import net.minecraftforge.client.event.RenderTooltipEvent;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.event.entity.player.ItemTooltipEvent;
 import net.minecraftforge.fml.client.registry.ClientRegistry;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
+import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.InputEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent.ClientTickEvent;
@@ -50,7 +53,7 @@ public class ClientProxy extends CommonProxy {
 	@Override
 	public void preInit(FMLPreInitializationEvent event) {
 		super.preInit(event);
-		CommonProxy.upgrade.initModel();
+		ModItems.upgrade.initModel();
 	}
 
 	@Override
@@ -79,6 +82,14 @@ public class ClientProxy extends CommonProxy {
 						world.spawnParticle(EnumParticleTypes.FLAME, vec.x + (world.rand.nextDouble() - .5), vec.y, vec.z + (world.rand.nextDouble() - .5), 0, -.5, 0, 0);
 				}
 			}
+		}
+	}
+
+	@SubscribeEvent(priority = EventPriority.HIGH)
+	public void tooltip(ItemTooltipEvent event) {
+		Jetpack jp;
+		if ((jp = Jetpack.getJetpack(event.getItemStack())) != null && jp.installed) {
+			event.getToolTip().addAll(jp.getTooltip());
 		}
 	}
 
